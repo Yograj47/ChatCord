@@ -1,17 +1,25 @@
+import dns from 'node:dns';
+
 import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+
 import { AppModule } from './app.module';
+
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const configService = app.get(ConfigService);
+
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+    origin: configService.getOrThrow<string>('app.clientUrl'),
     credentials: true,
   });
 
-  const port = process.env.PORT ?? 3000;
+  const port = configService.getOrThrow<number>('app.port');
 
   await app.listen(port);
 
