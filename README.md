@@ -61,20 +61,20 @@ Current task: **Foundation documentation and project configuration**
 - [x] Define architecture
 - [x] Create project tracker
 - [x] Add `.env.example`
-- [ ] Add LICENSE
-- [ ] Configure development tooling
+- [x] Add LICENSE
+- [x] Configure development tooling
 
 ## Backend
 
-- [ ] Establish backend module structure
-- [ ] Configure environment validation
-- [ ] Connect MongoDB
-- [ ] Configure Mongoose
-- [ ] Create User schema
-- [ ] Create Room schema
-- [ ] Create Message schema
-- [ ] Add request validation
-- [ ] Add API documentation
+- [x] Establish backend module structure
+- [x] Configure environment validation
+- [x] Connect MongoDB
+- [x] Configure Mongoose
+- [x] Create User schema
+- [x] Create Room schema
+- [x] Create Message schema
+- [x] Add request validation
+- [x] Add API documentation
 
 ## Authentication
 
@@ -223,11 +223,15 @@ ChatCord/
 - Initial repository structure established
 - React + TypeScript client initialized
 - NestJS server initialized
-- Architecture defined
-- Environment template created
+- Backend module structure established
+- Environment configuration and validation established
+- MongoDB Atlas connected
+- Mongoose configured
+- Development tooling configured
+- Architecture documented
 
 ### Next
 
-**Backend foundation**
+**Backend domain foundation**
 
-The next major step is to configure the NestJS application and establish the backend architecture before introducing MongoDB and authentication.
+The next step is to design and implement the application's core MongoDB models, starting with the User schema.
