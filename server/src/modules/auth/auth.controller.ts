@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
-import { AUTH_COOKIE } from 'src/common/constants/auth.constants';
+import { AUTH_COOKIE, AUTH_SESSION } from 'src/common/constants/auth.constants';
 import { UserDocument } from '../users/schemas/user.schema';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
@@ -49,7 +49,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: AUTH_SESSION.REGISTERED_ABSOLUTE_TTL,
     });
 
     const clientUrl = this.configService.getOrThrow<string>('app.clientUrl');
@@ -74,7 +74,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: AUTH_SESSION.REGISTERED_ABSOLUTE_TTL,
     });
 
     return response.json({
@@ -95,7 +95,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 30 * 60 * 1000,
+      maxAge: AUTH_SESSION.GUEST_TTL,
     });
 
     return response.json({

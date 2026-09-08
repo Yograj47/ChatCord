@@ -78,13 +78,22 @@ Current task: **Foundation documentation and project configuration**
 
 ## Authentication
 
-- [ ] Define authentication flow
-- [ ] Configure OAuth 2.0 / OpenID Connect
-- [ ] Add Google authentication
-- [ ] Create/find application user
-- [ ] Establish authenticated session
-- [ ] Protect API routes
-- [ ] Define roles and permissions
+- [x] Define authentication flow
+- [x] Configure OAuth 2.0 / OpenID Connect
+- [x] Add Google authentication
+- [x] Create/find application user
+- [x] Establish authenticated session
+- [x] Protect API routes
+- [x] Define roles and permissions
+
+### Authentication hardening
+
+- [ ] Review Google OAuth edge cases
+- [ ] Review session guard behavior
+- [ ] Review cookie configuration
+- [ ] Handle duplicate Google/user identity cases
+- [ ] Add auth unit/integration tests
+- [ ] Finalize UserService behavior
 
 ## Rooms
 
