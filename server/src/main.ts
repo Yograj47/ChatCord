@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 
 dns.setServers(['8.8.8.8', '1.1.1.1']);
 
@@ -14,6 +15,8 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.setGlobalPrefix('api');
+
+  app.use(cookieParser());
 
   app.enableCors({
     origin: configService.getOrThrow<string>('app.clientUrl'),

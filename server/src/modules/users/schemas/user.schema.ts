@@ -1,3 +1,4 @@
+import { HydratedDocument } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 export enum UserType {
@@ -80,5 +81,7 @@ export class User {
     source: AvatarSource;
   };
 }
+
+export type UserDocument = HydratedDocument<User>;
 
 export const UserSchema = SchemaFactory.createForClass(User);
