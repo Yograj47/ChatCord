@@ -1,3 +1,4 @@
+import { HydratedDocument } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 export enum UserType {
@@ -81,4 +82,17 @@ export class User {
   };
 }
 
+export type UserDocument = HydratedDocument<User>;
+
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index(
+  { 'identity.provider': 1, 'identity.providerId': 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      'identity.provider': { $exists: true },
+      'identity.providerId': { $exists: true },
+    },
+  },
+);
