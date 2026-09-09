@@ -12,7 +12,6 @@ describe('AuthController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        { provide: AuthService, useValue: {} },
         { provide: UsersService, useValue: {} },
         {
           provide: ConfigService,
@@ -21,7 +20,18 @@ describe('AuthController', () => {
             get: jest.fn().mockReturnValue('http://localhost:3000'),
           },
         },
-        { provide: SessionService, useValue: {} },
+        {
+          provide: AuthService,
+          useValue: {
+            googleLogin: jest.fn().mockResolvedValue({ token: 'jwt-token' }),
+          },
+        },
+        {
+          provide: SessionService,
+          useValue: {
+            validateSession: jest.fn().mockResolvedValue(true),
+          },
+        }
       ],
     }).compile();
 

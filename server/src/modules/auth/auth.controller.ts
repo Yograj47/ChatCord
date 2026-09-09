@@ -4,9 +4,11 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
 import { AUTH_COOKIE, AUTH_SESSION } from 'src/common/constants/auth.constants';
+
 import { UserDocument } from '../users/schemas/user.schema';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
+
 import {
   CurrentUserDecorator,
   GoogleCallbackDecorator,
@@ -14,6 +16,7 @@ import {
   GuestSessionDecorator,
   LogoutDecorator,
 } from './decorators';
+
 import { CurrentUser } from './decorators/current-user.decorator';
 import { GoogleOneTapDto } from './dto/google-one-tap.dto';
 
@@ -45,14 +48,14 @@ export class AuthController {
       request.headers['user-agent'],
     );
 
-    response.cookie(AUTH_COOKIE, session.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: AUTH_SESSION.REGISTERED_ABSOLUTE_TTL,
-    });
+    this.setAuthCookie(
+      response,
+      session.token,
+      AUTH_SESSION.REGISTERED_ABSOLUTE_TTL,
+    );
 
     const clientUrl = this.configService.getOrThrow<string>('app.clientUrl');
+
     return response.redirect(clientUrl);
   }
 
@@ -70,12 +73,11 @@ export class AuthController {
       request.headers['user-agent'],
     );
 
-    response.cookie(AUTH_COOKIE, session.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: AUTH_SESSION.REGISTERED_ABSOLUTE_TTL,
-    });
+    this.setAuthCookie(
+      response,
+      session.token,
+      AUTH_SESSION.REGISTERED_ABSOLUTE_TTL,
+    );
 
     return response.json({
       message: 'Google authentication successful.',
@@ -91,12 +93,7 @@ export class AuthController {
       request.headers['user-agent'],
     );
 
-    response.cookie(AUTH_COOKIE, session.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: AUTH_SESSION.GUEST_TTL,
-    });
+    this.setAuthCookie(response, session.token, AUTH_SESSION.GUEST_TTL);
 
     return response.json({
       message: 'Guest session created.',
@@ -113,22 +110,22 @@ export class AuthController {
       type: string;
     },
   ) {
-    if (sessionPayload?.id) {
-      const user = await this.usersService.findById(sessionPayload.id);
-      return {
-        ...sessionPayload,
-        user,
-      };
+    if (!sessionPayload?.id) {
+      return sessionPayload;
     }
 
-    return sessionPayload;
+    const user = await this.usersService.findById(sessionPayload.id);
+
+    return {
+      ...sessionPayload,
+      user,
+    };
   }
 
   @LogoutDecorator()
   @Post('logout')
   async logout(@Req() request: Request, @Res() response: Response) {
-    const cookies = request.cookies as Record<string, string> | undefined;
-    const token = cookies?.[AUTH_COOKIE];
+    const token = request.cookies?.[AUTH_COOKIE] as string | undefined;
 
     if (token) {
       await this.authService.logout(token);
@@ -138,6 +135,15 @@ export class AuthController {
 
     return response.json({
       message: 'Logout successful.',
+    });
+  }
+
+  private setAuthCookie(response: Response, token: string, maxAge: number) {
+    response.cookie(AUTH_COOKIE, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge,
     });
   }
 }

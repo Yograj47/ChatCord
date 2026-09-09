@@ -85,3 +85,14 @@ export class User {
 export type UserDocument = HydratedDocument<User>;
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+UserSchema.index(
+  { 'identity.provider': 1, 'identity.providerId': 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      'identity.provider': { $exists: true },
+      'identity.providerId': { $exists: true },
+    },
+  },
+);
