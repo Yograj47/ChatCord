@@ -1,37 +1,53 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
 import { SessionService } from './session.service';
+import { UsersService } from '../users/users.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
+
+  const authService = {
+    googleLogin: jest.fn(),
+    createUserSession: jest.fn(),
+    createGuestSession: jest.fn(),
+    logout: jest.fn(),
+  };
+
+  const usersService = {
+    findById: jest.fn(),
+  };
+
+  const sessionService = {
+    validateSession: jest.fn(),
+  };
+
+  const configService = {
+    getOrThrow: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [
-        { provide: UsersService, useValue: {} },
-        {
-          provide: ConfigService,
-          useValue: {
-            getOrThrow: jest.fn().mockReturnValue('http://localhost:3000'),
-            get: jest.fn().mockReturnValue('http://localhost:3000'),
-          },
-        },
         {
           provide: AuthService,
-          useValue: {
-            googleLogin: jest.fn().mockResolvedValue({ token: 'jwt-token' }),
-          },
+          useValue: authService,
+        },
+        {
+          provide: UsersService,
+          useValue: usersService,
+        },
+        {
+          provide: ConfigService,
+          useValue: configService,
         },
         {
           provide: SessionService,
-          useValue: {
-            validateSession: jest.fn().mockResolvedValue(true),
-          },
-        }
+          useValue: sessionService,
+        },
       ],
     }).compile();
 
