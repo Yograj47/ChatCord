@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
+import { HydratedDocument } from 'mongoose';
 
 export enum RoomType {
   DM = 'dm',
@@ -113,6 +114,7 @@ export class Room {
 }
 
 export const RoomSchema = SchemaFactory.createForClass(Room);
+export type RoomDocument = HydratedDocument<Room>;
 
 RoomSchema.index({ type: 1, createdBy: 1 });
 RoomSchema.index({ 'members.userId': 1 });

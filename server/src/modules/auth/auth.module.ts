@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { SessionService } from './session.service';
 import { UsersModule } from '../users/users.module';
+import { SessionGuard } from './guards/session.guard';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 @Module({
   imports: [
@@ -22,7 +24,13 @@ import { UsersModule } from '../users/users.module';
   ],
 
   controllers: [AuthController],
-
-  providers: [AuthService, GoogleStrategy, SessionService],
+  providers: [
+    AuthService,
+    SessionService,
+    GoogleStrategy,
+    GoogleAuthGuard,
+    SessionGuard,
+  ],
+  exports: [AuthService, SessionService, SessionGuard],
 })
 export class AuthModule {}
