@@ -24,7 +24,9 @@ const otherUserId = new Types.ObjectId().toString();
 const moderatorId = new Types.ObjectId().toString();
 const roomId = new Types.ObjectId().toString();
 
-const createMockRoom = (overrides: Partial<Room> = {}): HydratedDocument<Room> => {
+const createMockRoom = (
+  overrides: Partial<Room> = {},
+): HydratedDocument<Room> => {
   const room = {
     _id: new Types.ObjectId(),
     type: RoomType.GROUP,
@@ -45,7 +47,9 @@ const createMockRoom = (overrides: Partial<Room> = {}): HydratedDocument<Room> =
   };
 
   const hydratedDoc = room as unknown as HydratedDocument<Room>;
-  hydratedDoc.save = jest.fn<HydratedDocument<Room>['save']>().mockResolvedValue(hydratedDoc);
+  hydratedDoc.save = jest
+    .fn<HydratedDocument<Room>['save']>()
+    .mockResolvedValue(hydratedDoc);
   return hydratedDoc;
 };
 
@@ -102,7 +106,9 @@ describe('RoomsService', () => {
       };
 
       const savedRoom = createMockRoom();
-      const save = jest.fn<HydratedDocument<Room>['save']>().mockResolvedValue(savedRoom);
+      const save = jest
+        .fn<HydratedDocument<Room>['save']>()
+        .mockResolvedValue(savedRoom);
 
       mockRoomModel.mockImplementationOnce((data: unknown) => {
         const doc = createMockRoom(data as Partial<Room>);
@@ -164,7 +170,9 @@ describe('RoomsService', () => {
       };
 
       const savedRoom = createMockRoom();
-      const save = jest.fn<HydratedDocument<Room>['save']>().mockResolvedValue(savedRoom);
+      const save = jest
+        .fn<HydratedDocument<Room>['save']>()
+        .mockResolvedValue(savedRoom);
 
       mockRoomModel.mockImplementationOnce((data: unknown) => {
         const doc = createMockRoom(data as Partial<Room>);
@@ -187,7 +195,9 @@ describe('RoomsService', () => {
     it('should return rooms belonging to the user', async () => {
       const rooms = [createMockRoom()];
 
-      const exec = jest.fn<() => Promise<HydratedDocument<Room>[]>>().mockResolvedValue(rooms);
+      const exec = jest
+        .fn<() => Promise<HydratedDocument<Room>[]>>()
+        .mockResolvedValue(rooms);
 
       const sort = jest.fn().mockReturnValue({
         exec,
@@ -217,7 +227,9 @@ describe('RoomsService', () => {
       const room = createMockRoom();
 
       mockRoomModel.findById.mockReturnValue({
-        exec: jest.fn<() => Promise<HydratedDocument<Room>>>().mockResolvedValue(room),
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Room>>>()
+          .mockResolvedValue(room),
       });
 
       const result = await service.findById(roomId);
@@ -228,12 +240,12 @@ describe('RoomsService', () => {
 
     it('should throw NotFoundException when the room does not exist', async () => {
       mockRoomModel.findById.mockReturnValue({
-        exec: jest.fn<() => Promise<HydratedDocument<Room> | null>>().mockResolvedValue(null),
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Room> | null>>()
+          .mockResolvedValue(null),
       });
 
-      await expect(service.findById(roomId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findById(roomId)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -242,7 +254,9 @@ describe('RoomsService', () => {
       const room = createMockRoom();
 
       mockRoomModel.findOne.mockReturnValue({
-        exec: jest.fn<() => Promise<HydratedDocument<Room>>>().mockResolvedValue(room),
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Room>>>()
+          .mockResolvedValue(room),
       });
 
       const result = await service.findMembership(roomId, userId);
@@ -266,7 +280,9 @@ describe('RoomsService', () => {
 
     it('should return null when the user is not a member', async () => {
       mockRoomModel.findOne.mockReturnValue({
-        exec: jest.fn<() => Promise<HydratedDocument<Room> | null>>().mockResolvedValue(null),
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Room> | null>>()
+          .mockResolvedValue(null),
       });
 
       const result = await service.findMembership(roomId, otherUserId);
@@ -280,7 +296,9 @@ describe('RoomsService', () => {
       });
 
       mockRoomModel.findOne.mockReturnValue({
-        exec: jest.fn<() => Promise<HydratedDocument<Room>>>().mockResolvedValue(room),
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Room>>>()
+          .mockResolvedValue(room),
       });
 
       const result = await service.findMembership(roomId, otherUserId);
@@ -303,7 +321,7 @@ describe('RoomsService', () => {
         },
       ];
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       const result = await service.joinRoom(roomId, userId);
@@ -316,7 +334,7 @@ describe('RoomsService', () => {
           joinedAt: expect.any(Date),
         }),
       );
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
       expect(result).toBe(room);
     });
 
@@ -331,7 +349,7 @@ describe('RoomsService', () => {
         ForbiddenException,
       );
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject joining a private room', async () => {
@@ -345,7 +363,7 @@ describe('RoomsService', () => {
         ForbiddenException,
       );
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject a user who is already a member', async () => {
@@ -357,7 +375,7 @@ describe('RoomsService', () => {
         ConflictException,
       );
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
   });
 
@@ -378,18 +396,16 @@ describe('RoomsService', () => {
         ],
       });
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       const result = await service.leaveRoom(roomId, userId);
 
       expect(room.members).toHaveLength(1);
       expect(
-        room.members.some(
-          (member) => member.userId.toString() === userId,
-        ),
+        room.members.some((member) => member.userId.toString() === userId),
       ).toBe(false);
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
       expect(result).toBe(room);
     });
 
@@ -402,7 +418,7 @@ describe('RoomsService', () => {
         NotFoundException,
       );
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject the room owner from leaving', async () => {
@@ -414,7 +430,7 @@ describe('RoomsService', () => {
         ForbiddenException,
       );
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
   });
 
@@ -422,7 +438,7 @@ describe('RoomsService', () => {
     it('should allow the owner to update the room', async () => {
       const room = createMockRoom();
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       const dto: UpdateRoomDto = {
@@ -441,7 +457,7 @@ describe('RoomsService', () => {
         RoomCapability.TEXT,
         RoomCapability.MEDIA,
       ]);
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
       expect(result).toBe(room);
     });
 
@@ -456,7 +472,7 @@ describe('RoomsService', () => {
         ],
       });
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       const dto: UpdateRoomDto = {
@@ -466,7 +482,7 @@ describe('RoomsService', () => {
       await service.updateRoom(roomId, moderatorId, dto);
 
       expect(room.name).toBe('Moderator Updated Room');
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
     });
 
     it('should reject a normal member from updating the room', async () => {
@@ -488,13 +504,13 @@ describe('RoomsService', () => {
         }),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should trim updated name and description', async () => {
       const room = createMockRoom();
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       await service.updateRoom(roomId, userId, {
@@ -513,9 +529,11 @@ describe('RoomsService', () => {
 
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
-      const exec = jest.fn<() => Promise<{ deletedCount: number }>>().mockResolvedValue({
-        deletedCount: 1,
-      });
+      const exec = jest
+        .fn<() => Promise<{ deletedCount: number }>>()
+        .mockResolvedValue({
+          deletedCount: 1,
+        });
 
       mockRoomModel.deleteOne.mockReturnValue({
         exec,
@@ -575,14 +593,10 @@ describe('RoomsService', () => {
     it('should allow the owner to add a member', async () => {
       const room = createMockRoom();
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
-      const result = await service.addMember(
-        roomId,
-        userId,
-        otherUserId,
-      );
+      const result = await service.addMember(roomId, userId, otherUserId);
 
       expect(room.members).toHaveLength(2);
       expect(room.members[1]).toEqual(
@@ -592,7 +606,7 @@ describe('RoomsService', () => {
           joinedAt: expect.any(Date),
         }),
       );
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
       expect(result).toBe(room);
     });
 
@@ -607,13 +621,13 @@ describe('RoomsService', () => {
         ],
       });
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       await service.addMember(roomId, moderatorId, otherUserId);
 
       expect(room.members).toHaveLength(2);
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
     });
 
     it('should reject a normal member from adding members', async () => {
@@ -633,7 +647,7 @@ describe('RoomsService', () => {
         service.addMember(roomId, otherUserId, moderatorId),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject adding an existing member', async () => {
@@ -641,11 +655,11 @@ describe('RoomsService', () => {
 
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
-      await expect(
-        service.addMember(roomId, userId, userId),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.addMember(roomId, userId, userId)).rejects.toThrow(
+        ConflictException,
+      );
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
   });
 
@@ -666,22 +680,16 @@ describe('RoomsService', () => {
         ],
       });
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
-      const result = await service.removeMember(
-        roomId,
-        userId,
-        otherUserId,
-      );
+      const result = await service.removeMember(roomId, userId, otherUserId);
 
       expect(room.members).toHaveLength(1);
       expect(
-        room.members.some(
-          (member) => member.userId.toString() === otherUserId,
-        ),
+        room.members.some((member) => member.userId.toString() === otherUserId),
       ).toBe(false);
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
       expect(result).toBe(room);
     });
 
@@ -701,17 +709,13 @@ describe('RoomsService', () => {
         ],
       });
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
-      await service.removeMember(
-        roomId,
-        moderatorId,
-        otherUserId,
-      );
+      await service.removeMember(roomId, moderatorId, otherUserId);
 
       expect(room.members).toHaveLength(1);
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
     });
 
     it('should reject a normal member from removing members', async () => {
@@ -731,7 +735,7 @@ describe('RoomsService', () => {
         service.removeMember(roomId, otherUserId, moderatorId),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject removing a user who is not a member', async () => {
@@ -743,7 +747,7 @@ describe('RoomsService', () => {
         service.removeMember(roomId, userId, otherUserId),
       ).rejects.toThrow(NotFoundException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject removing the room owner', async () => {
@@ -755,7 +759,7 @@ describe('RoomsService', () => {
         service.removeMember(roomId, userId, userId),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
   });
 
@@ -776,7 +780,7 @@ describe('RoomsService', () => {
         ],
       });
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       const result = await service.updateMemberRole(
@@ -787,7 +791,7 @@ describe('RoomsService', () => {
       );
 
       expect(room.members[1].role).toBe(RoomMemberRole.MODERATOR);
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
       expect(result).toBe(room);
     });
 
@@ -807,7 +811,7 @@ describe('RoomsService', () => {
         ],
       });
 
-      jest.spyOn(room, 'save').mockResolvedValue(room as never);
+      jest.spyOn(room, 'save').mockResolvedValue(room);
       jest.spyOn(service, 'findById').mockResolvedValue(room);
 
       await service.updateMemberRole(
@@ -818,7 +822,7 @@ describe('RoomsService', () => {
       );
 
       expect(room.members[1].role).toBe(RoomMemberRole.MEMBER);
-      expect(room.save).toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
     });
 
     it('should reject a moderator from changing member roles', async () => {
@@ -848,7 +852,7 @@ describe('RoomsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject a normal member from changing member roles', async () => {
@@ -873,7 +877,7 @@ describe('RoomsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject changing the owner role', async () => {
@@ -890,7 +894,7 @@ describe('RoomsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject assigning the owner role', async () => {
@@ -920,7 +924,7 @@ describe('RoomsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
 
     it('should reject changing the role of a non-member', async () => {
@@ -937,7 +941,7 @@ describe('RoomsService', () => {
         ),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(room.save).not.toHaveBeenCalled();
+      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
     });
   });
 });

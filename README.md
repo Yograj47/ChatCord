@@ -106,12 +106,12 @@ Current task: **Messaging foundation**
 
 ## Messaging
 
-- [ ] Create message
-- [ ] Persist messages
-- [ ] Retrieve message history
+- [x] Create message
+- [x] Persist messages
+- [x] Retrieve message history
 - [ ] Message pagination
-- [ ] Edit message
-- [ ] Delete message
+- [x] Edit message
+- [x] Delete message
 - [ ] Message replies
 - [ ] Message reactions
 - [ ] Message search

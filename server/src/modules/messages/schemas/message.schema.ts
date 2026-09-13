@@ -1,3 +1,4 @@
+import { HydratedDocument } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
@@ -29,6 +30,8 @@ export class Message {
   })
   content!: string;
 }
+
+export type MessageDocument = HydratedDocument<Message>;
 
 export const MessageSchema = SchemaFactory.createForClass(Message);
 

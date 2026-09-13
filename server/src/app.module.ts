@@ -9,6 +9,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
+import { MessagesModule } from './modules/messages/messages.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { RoomsModule } from './modules/rooms/rooms.module';
     DatabaseModule,
     AuthModule,
     RoomsModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
