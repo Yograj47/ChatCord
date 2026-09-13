@@ -8,10 +8,9 @@ The goal is to rebuild ChatCord into a production-oriented application demonstra
 
 🚧 **In Development**
 
-Current milestone: **Project Foundation**
+Current milestone: **Core Backend**
 
-Current task: **Foundation documentation and project configuration**
-
+Current task: **Messaging foundation**
 ---
 
 ## Tech Stack
@@ -88,22 +87,22 @@ Current task: **Foundation documentation and project configuration**
 
 ### Authentication hardening
 
-- [ ] Review Google OAuth edge cases
-- [ ] Review session guard behavior
-- [ ] Review cookie configuration
-- [ ] Handle duplicate Google/user identity cases
-- [ ] Add auth unit/integration tests
-- [ ] Finalize UserService behavior
+- [x] Review Google OAuth edge cases
+- [x] Review session guard behavior
+- [x] Review cookie configuration
+- [x] Handle duplicate Google/user identity cases
+- [x] Add auth unit/integration tests
+- [x] Finalize UserService behavior
 
 ## Rooms
 
-- [ ] Create room
-- [ ] List rooms
-- [ ] Room details
-- [ ] Join room
-- [ ] Leave room
-- [ ] Room membership
-- [ ] Room permissions
+- [x] Create room
+- [x] List rooms
+- [x] Room details
+- [x] Join room
+- [x] Leave room
+- [x] Room membership
+- [x] Room permissions
 
 ## Messaging
 
@@ -228,19 +227,26 @@ ChatCord/
 ### Completed
 
 - Repository initialized
-- Project foundation branch created
-- Initial repository structure established
+- Project foundation established
 - React + TypeScript client initialized
 - NestJS server initialized
 - Backend module structure established
 - Environment configuration and validation established
 - MongoDB Atlas connected
 - Mongoose configured
+- User schema established
+- Room schema established
+- Authentication foundation established
+- Session authentication established
+- Room creation and management established
+- Room membership and permissions established
+- Request validation configured
+- API documentation configured
 - Development tooling configured
 - Architecture documented
 
 ### Next
 
-**Backend domain foundation**
+**Messaging foundation**
 
-The next step is to design and implement the application's core MongoDB models, starting with the User schema.
+Implement the Message model and messaging domain, including message creation, persistence, history retrieval, pagination, and message-level permissions.
