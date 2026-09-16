@@ -6,7 +6,7 @@ import { HydratedDocument, Types } from 'mongoose';
 
 import { RoomsService } from '../rooms/rooms.service';
 import { RoomCapability, RoomMemberRole } from '../rooms/schemas/room.schema';
-import { CreateMessageDto } from './dto/create-message-dto';
+import { CreateMessageDto } from './dto/create-message.dto';
 import { Message } from './schemas/message.schema';
 import { MessagesService } from './messages.service';
 
@@ -47,8 +47,12 @@ describe('MessagesService', () => {
   });
 
   const mockRoomsService = {
-    findById: jest.fn(),
-    findMembership: jest.fn(),
+    findById: jest.fn<
+      (roomId: string) => Promise<{ capabilities: RoomCapability[] }>
+    >(),
+    findMembership: jest.fn<
+      (roomId: string, userId: string) => Promise<RoomMemberRole | null>
+    >(),
   };
 
   beforeEach(async () => {

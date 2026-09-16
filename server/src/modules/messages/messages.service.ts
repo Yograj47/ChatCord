@@ -8,7 +8,7 @@ import { Model, Types } from 'mongoose';
 
 import { RoomsService } from '../rooms/rooms.service';
 import { RoomCapability } from '../rooms/schemas/room.schema';
-import { CreateMessageDto } from './dto/create-message-dto';
+import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { Message, MessageDocument } from './schemas/message.schema';
 
@@ -26,6 +26,7 @@ export class MessagesService {
     dto: CreateMessageDto,
   ): Promise<MessageDocument> {
     const room = await this.roomsService.findById(roomId);
+
     await this.assertMembership(roomId, senderId);
 
     if (!room.capabilities.includes(RoomCapability.TEXT)) {
@@ -92,8 +93,6 @@ export class MessagesService {
     roomId: string,
     userId: string,
   ): Promise<void> {
-    await this.roomsService.findById(roomId);
-
     const membership = await this.roomsService.findMembership(roomId, userId);
 
     if (!membership) {

@@ -12,7 +12,7 @@ import { ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SessionGuard } from '../auth/guards/session.guard';
-import { CreateMessageDto } from './dto/create-message-dto';
+import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { MessagesService } from './messages.service';
 

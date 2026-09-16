@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { SessionGuard } from '../auth/guards/session.guard';
-import { CreateMessageDto } from './dto/create-message-dto';
+import { CreateMessageDto } from './dto/create-message.dto';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
 
