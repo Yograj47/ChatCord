@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { MessagesModule } from './modules/messages/messages.module';
+import { GatewayModule } from './modules/gateway/gateway.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { MessagesModule } from './modules/messages/messages.module';
     AuthModule,
     RoomsModule,
     MessagesModule,
+    GatewayModule,
   ],
   controllers: [AppController],
   providers: [AppService],
