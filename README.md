@@ -8,9 +8,9 @@ The goal is to rebuild ChatCord into a production-oriented application demonstra
 
 🚧 **In Development**
 
-Current milestone: **Core Backend**
+Current milestone: **Real-Time Foundation**
 
-Current task: **Messaging foundation**
+Current task: **Redis foundation**
 ---
 
 ## Tech Stack
@@ -236,6 +236,7 @@ ChatCord/
 - Mongoose configured
 - User schema established
 - Room schema established
+- Message schema established
 - Authentication foundation established
 - Session authentication established
 - Room creation and management established
@@ -244,9 +245,28 @@ ChatCord/
 - API documentation configured
 - Development tooling configured
 - Architecture documented
+- Messaging foundation established
+- Message creation and persistence established
+- Message history retrieval established
+- Message editing and deletion established
+- Socket.IO configured
+- Socket authentication established
+- Room socket connections established
+- Real-time messaging established
+- Online presence established
+- Typing indicators established
+- Room join/leave events established
+- Socket connection handling established
 
 ### Next
 
-**Messaging foundation**
+**Redis foundation**
 
-Implement the Message model and messaging domain, including message creation, persistence, history retrieval, pagination, and message-level permissions.
+Configure Redis for ephemeral and shared realtime state, beginning with:
+
+- Redis connection
+- Presence state
+- Typing state
+- Caching
+- Rate limiting
+- Socket.IO Redis adapter
