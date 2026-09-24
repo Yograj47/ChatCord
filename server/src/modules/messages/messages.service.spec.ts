@@ -47,12 +47,14 @@ describe('MessagesService', () => {
   });
 
   const mockRoomsService = {
-    findById: jest.fn<
-      (roomId: string) => Promise<{ capabilities: RoomCapability[] }>
-    >(),
-    findMembership: jest.fn<
-      (roomId: string, userId: string) => Promise<RoomMemberRole | null>
-    >(),
+    findById:
+      jest.fn<
+        (roomId: string) => Promise<{ capabilities: RoomCapability[] }>
+      >(),
+    findMembership:
+      jest.fn<
+        (roomId: string, userId: string) => Promise<RoomMemberRole | null>
+      >(),
   };
 
   beforeEach(async () => {
