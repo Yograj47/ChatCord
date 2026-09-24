@@ -118,13 +118,13 @@ Current task: **Messaging foundation**
 
 ## Real-Time
 
-- [ ] Configure Socket.IO
-- [ ] Room connections
-- [ ] Real-time messages
-- [ ] Online presence
-- [ ] Typing indicators
-- [ ] Join/leave events
-- [ ] Connection handling
+- [x] Configure Socket.IO
+- [x] Room connections
+- [x] Real-time messages
+- [x] Online presence
+- [x] Typing indicators
+- [x] Join/leave events
+- [x] Connection handling
 
 ## Redis
 
