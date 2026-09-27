@@ -15,13 +15,23 @@ import {
 } from './schemas/room.schema';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class RoomsService {
   constructor(
     @InjectModel(Room.name)
     private readonly roomModel: Model<RoomDocument>,
+    private readonly redisService: RedisService,
   ) {}
+
+  private roomCacheKey(roomId: string): string {
+    return `cache:room:${roomId}`;
+  }
+
+  private async invalidateRoomCache(roomId: string): Promise<void> {
+    await this.redisService.deleteCache(this.roomCacheKey(roomId));
+  }
 
   async createRoom(userId: string, dto: CreateRoomDto): Promise<RoomDocument> {
     if (dto.type === RoomType.DM) {
@@ -63,11 +73,20 @@ export class RoomsService {
   }
 
   async findById(roomId: string): Promise<RoomDocument> {
+    const cacheKey = this.roomCacheKey(roomId);
+    const cacheRoom = await this.redisService.getCache<RoomDocument>(cacheKey);
+
+    if (cacheRoom) {
+      return cacheRoom;
+    }
+
     const room = await this.roomModel.findById(roomId).exec();
 
     if (!room) {
       throw new NotFoundException('Room not found.');
     }
+
+    await this.redisService.setCache(cacheKey, room.toObject(), 300);
 
     return room;
   }
@@ -120,7 +139,10 @@ export class RoomsService {
       joinedAt: new Date(),
     });
 
-    return room.save();
+    const updatedRoom = await room.save();
+    await this.invalidateRoomCache(roomId);
+
+    return updatedRoom;
   }
 
   async leaveRoom(roomId: string, userId: string): Promise<RoomDocument> {
@@ -144,7 +166,10 @@ export class RoomsService {
 
     room.members.splice(memberIndex, 1);
 
-    return room.save();
+    const updatedRoom = await room.save();
+    await this.invalidateRoomCache(roomId);
+
+    return updatedRoom;
   }
 
   async updateRoom(
@@ -153,7 +178,6 @@ export class RoomsService {
     dto: UpdateRoomDto,
   ): Promise<RoomDocument> {
     const room = await this.findById(roomId);
-
     const member = this.getMember(room, userId);
 
     if (
@@ -181,12 +205,14 @@ export class RoomsService {
       room.capabilities = dto.capabilities;
     }
 
-    return room.save();
+    const updatedRoom = await room.save();
+    await this.invalidateRoomCache(roomId);
+
+    return updatedRoom;
   }
 
   async deleteRoom(roomId: string, userId: string): Promise<void> {
     const room = await this.findById(roomId);
-
     const member = this.getMember(room, userId);
 
     if (member.role !== RoomMemberRole.OWNER) {
@@ -194,6 +220,7 @@ export class RoomsService {
     }
 
     await this.roomModel.deleteOne({ _id: roomId }).exec();
+    await this.invalidateRoomCache(roomId);
   }
 
   async addMember(
@@ -202,7 +229,6 @@ export class RoomsService {
     targetUserId: string,
   ): Promise<RoomDocument> {
     const room = await this.findById(roomId);
-
     this.assertCanManageMembers(room, userId);
 
     const alreadyMember = room.members.some(
@@ -219,7 +245,10 @@ export class RoomsService {
       joinedAt: new Date(),
     });
 
-    return room.save();
+    const updatedRoom = await room.save();
+    await this.invalidateRoomCache(roomId);
+
+    return updatedRoom;
   }
 
   async removeMember(
@@ -228,7 +257,6 @@ export class RoomsService {
     targetUserId: string,
   ): Promise<RoomDocument> {
     const room = await this.findById(roomId);
-
     this.assertCanManageMembers(room, userId);
 
     const targetIndex = room.members.findIndex(
@@ -245,7 +273,10 @@ export class RoomsService {
 
     room.members.splice(targetIndex, 1);
 
-    return room.save();
+    const updatedRoom = await room.save();
+    await this.invalidateRoomCache(roomId);
+
+    return updatedRoom;
   }
 
   async updateMemberRole(
@@ -255,7 +286,6 @@ export class RoomsService {
     role: RoomMemberRole,
   ): Promise<RoomDocument> {
     const room = await this.findById(roomId);
-
     const requester = this.getMember(room, userId);
 
     if (requester.role !== RoomMemberRole.OWNER) {
@@ -280,7 +310,10 @@ export class RoomsService {
 
     target.role = role;
 
-    return room.save();
+    const updatedRoom = await room.save();
+    await this.invalidateRoomCache(roomId);
+
+    return updatedRoom;
   }
 
   private getMember(room: RoomDocument, userId: string) {

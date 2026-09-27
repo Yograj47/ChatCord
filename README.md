@@ -128,11 +128,11 @@ Current task: **Redis foundation**
 
 ## Redis
 
-- [ ] Configure Redis
-- [ ] Presence state
-- [ ] Typing state
-- [ ] Caching
-- [ ] Rate limiting
+- [x] Configure Redis
+- [x] Presence state   
+- [x] Typing   state
+- [x] Caching
+- [x] Rate limiting
 - [ ] Socket.IO Redis adapter
 
 ## Frontend

@@ -11,6 +11,8 @@ import { Socket } from 'socket.io';
 import { RoomsService } from '../rooms/rooms.service';
 import { MessagesService } from '../messages/messages.service';
 import { SocketAuthService } from './socket-auth.service';
+import { RedisService } from '../redis/redis.service';
+import { RateLimitService } from '../redis/rate-limit.service';
 
 interface GatewaySocketData {
   userId?: string;
@@ -50,9 +52,9 @@ export class GatewayGateway
     private readonly socketAuthService: SocketAuthService,
     private readonly roomsService: RoomsService,
     private readonly messagesService: MessagesService,
+    private readonly redisService: RedisService,
+    private readonly rateLimitService: RateLimitService,
   ) {}
-
-  private readonly connectedUsers = new Map<string, Set<string>>();
 
   async handleConnection(client: GatewaySocket): Promise<void> {
     try {
@@ -71,17 +73,12 @@ export class GatewayGateway
       client.data.sessionId = session._id.toString();
       client.data.sessionType = session.type;
 
-      const sockets = this.connectedUsers.get(userId) ?? new Set<string>();
+      const sockets = await this.redisService.getPresence(userId);
 
-      const wasOffline = sockets.size === 0;
+      await this.redisService.addPresence(userId, client.id);
 
-      sockets.add(client.id);
-      this.connectedUsers.set(userId, sockets);
-
-      if (wasOffline) {
-        client.broadcast.emit('user-online', {
-          userId,
-        });
+      if (sockets.length === 0) {
+        client.broadcast.emit('user-online', { userId });
       }
 
       console.log(`Socket connected: ${client.id}`);
@@ -94,27 +91,19 @@ export class GatewayGateway
     }
   }
 
-  handleDisconnect(client: GatewaySocket): void {
+  async handleDisconnect(client: GatewaySocket): Promise<void> {
     const userId = client.data.userId;
 
     if (!userId) {
       return;
     }
 
-    const sockets = this.connectedUsers.get(userId);
+    await this.redisService.removePresence(userId, client.id);
 
-    if (!sockets) {
-      return;
-    }
+    const remainingSockets = await this.redisService.getPresence(userId);
 
-    sockets.delete(client.id);
-
-    if (sockets.size === 0) {
-      this.connectedUsers.delete(userId);
-
-      client.broadcast.emit('user-offline', {
-        userId,
-      });
+    if (remainingSockets.length === 0) {
+      client.broadcast.emit('user-offline', { userId });
     }
 
     console.log(`Socket disconnected: ${client.id}`);
@@ -129,6 +118,17 @@ export class GatewayGateway
 
     if (!userId) {
       throw new WsException('Authentication required.');
+    }
+
+    const allowed = await this.rateLimitService.check(
+      'room:join',
+      userId,
+      20,
+      60,
+    );
+
+    if (!allowed) {
+      throw new WsException('Too many room join requests. Please slow down.');
     }
 
     const membership = await this.roomsService.findMembership(
@@ -166,6 +166,17 @@ export class GatewayGateway
       throw new WsException('Authentication required.');
     }
 
+    const allowed = await this.rateLimitService.check(
+      'room:leave',
+      userId,
+      20,
+      60,
+    );
+
+    if (!allowed) {
+      throw new WsException('Too many room leave requests. Please slow down.');
+    }
+
     const membership = await this.roomsService.findMembership(
       data.roomId,
       userId,
@@ -201,6 +212,17 @@ export class GatewayGateway
       throw new WsException('Authentication required.');
     }
 
+    const allowed = await this.rateLimitService.check(
+      'message',
+      userId,
+      30,
+      60,
+    );
+
+    if (!allowed) {
+      throw new WsException('Too many message. Please slow down.');
+    }
+
     const message = await this.messagesService.createMessage(
       data.roomId,
       userId,
@@ -224,6 +246,14 @@ export class GatewayGateway
   ) {
     const userId = await this.assertRoomMembership(client, data.roomId);
 
+    const allowed = await this.rateLimitService.check('typing', userId, 10, 1);
+
+    if (!allowed) {
+      throw new WsException('Too many typing events. Please slow down.');
+    }
+
+    await this.redisService.setTyping(data.roomId, userId);
+
     client.to(data.roomId).emit('user-typing', {
       roomId: data.roomId,
       userId,
@@ -236,6 +266,8 @@ export class GatewayGateway
     @MessageBody() data: { roomId: string },
   ) {
     const userId = await this.assertRoomMembership(client, data.roomId);
+
+    await this.redisService.clearTyping(data.roomId, userId);
 
     client.to(data.roomId).emit('user-stopped-typing', {
       roomId: data.roomId,

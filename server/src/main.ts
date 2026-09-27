@@ -1,4 +1,5 @@
 import dns from 'node:dns';
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
@@ -6,11 +7,14 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
-
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+import { RedisIoAdapter } from './modules/gateway/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
 
   const configService = app.get(ConfigService);
 

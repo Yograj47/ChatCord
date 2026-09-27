@@ -18,6 +18,7 @@ import {
 } from './schemas/room.schema';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
+import { RedisService } from '../redis/redis.service';
 
 const userId = new Types.ObjectId().toString();
 const otherUserId = new Types.ObjectId().toString();
@@ -43,6 +44,17 @@ const createMockRoom = (
       },
     ],
     save: jest.fn(),
+    toObject: jest.fn().mockReturnValue({
+      _id: new Types.ObjectId(),
+      type: RoomType.GROUP,
+      name: 'General Chat',
+      description: 'General discussion',
+      visibility: RoomVisibility.PUBLIC,
+      capabilities: [RoomCapability.TEXT],
+      createdBy: new Types.ObjectId(userId),
+      members: [],
+      ...overrides,
+    }),
     ...overrides,
   };
 
@@ -52,7 +64,6 @@ const createMockRoom = (
     .mockResolvedValue(hydratedDoc);
   return hydratedDoc;
 };
-
 describe('RoomsService', () => {
   let service: RoomsService;
 
@@ -84,6 +95,17 @@ describe('RoomsService', () => {
         {
           provide: getModelToken(Room.name),
           useValue: mockRoomModel,
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+            setCache: jest.fn(),
+            getCache: jest.fn(),
+            deleteCache: jest.fn(),
+          },
         },
       ],
     }).compile();
