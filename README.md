@@ -133,12 +133,21 @@ Current task: **Redis foundation**
 - [x] Typing   state
 - [x] Caching
 - [x] Rate limiting
-- [ ] Socket.IO Redis adapter
+- [x] Socket.IO Redis adapter
 
 ## Frontend
 
-- [ ] Application layout
-- [ ] Authentication UI
+- [x] Initialize React client
+- [x] Configure TypeScript
+- [x] Configure Vite
+- [x] Configure Tailwind CSS
+- [x] Configure shadcn/ui
+- [x] Configure TanStack Query
+- [x] Configure Zustand
+- [x] Configure API client
+- [x] Configure Socket.IO client
+- [x] Establish frontend application layout
+- [] Authentication UI
 - [ ] Room interface
 - [ ] Message interface
 - [ ] Real-time integration
