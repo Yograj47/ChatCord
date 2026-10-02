@@ -147,14 +147,14 @@ Current task: **Redis foundation**
 - [x] Configure API client
 - [x] Configure Socket.IO client
 - [x] Establish frontend application layout
-- [] Authentication UI
-- [ ] Room interface
-- [ ] Message interface
+- [x] Authentication UI
+- [x] Room interface
+- [x] Message interface
 - [ ] Real-time integration
-- [ ] Presence UI
-- [ ] Typing indicator
-- [ ] Reactions
-- [ ] Replies
+- [x] Presence UI
+- [] Typing indicator
+- [x] Reactions
+- [x] Replies
 - [ ] Responsive design
 
 ## Testing

@@ -13,8 +13,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   memberCount = 12,
 }) => {
   return (
-    <div className="h-12 border-b border-zinc-800/80 bg-[#0d0f14] px-4 flex items-center justify-between shrink-0">
-      <div className="flex items-center space-x-2 min-w-0">
+    <div className="relative z-20 h-12 border-b border-zinc-800/80 bg-[#0d0f14] px-4 flex items-center justify-between shrink-0">  <div className="flex items-center space-x-2 min-w-0">
         <Hash className="h-4 w-4 text-indigo-400 shrink-0" />
         <h2 className="text-sm font-semibold text-zinc-100 truncate">{roomName}</h2>
         <span className="text-zinc-700 text-xs shrink-0">|</span>

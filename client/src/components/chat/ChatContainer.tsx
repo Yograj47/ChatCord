@@ -1,62 +1,53 @@
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
 import { ChatHeader } from './ChatHeader';
 import { MessageList } from './MessageList';
-import { MessageInput } from './MessageInput';
+import { MessageInput, type ReplyingToState } from './MessageInput';
 import { type Message } from './MessageItem';
 
-interface ChatContainerProps {
-  roomId?: string;
-  topic?: string;
-}
+export const ChatContainer: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [replyingTo, setReplyingTo] = useState<ReplyingToState | null>(null);
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: 'm1',
-    senderName: 'Julian Reyes',
-    senderInitials: 'JR',
-    senderAvatarBg: 'bg-indigo-600',
-    content: 'Hey team, welcome! WebSocket gateway is connected.',
-    timestamp: '10:14 AM',
-  },
-  {
-    id: 'm2',
-    senderName: 'Mara Voss',
-    senderInitials: 'MV',
-    senderAvatarBg: 'bg-emerald-600',
-    content: 'Awesome! Latency looks stable at ~24ms.',
-    timestamp: '10:16 AM',
-  },
-];
-
-export const ChatContainer: React.FC<ChatContainerProps> = ({
-  roomId: propRoomId,
-  topic = 'General developer channel and realtime updates',
-}) => {
-  // Read params from URL router if not explicitly passed as props
-  const params = useParams<{ roomId?: string; dmId?: string; messageId?: string }>();
-  const activeRoomId = propRoomId || params.roomId || params.dmId || 'dev-general';
-
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = (content: string, replyContext?: ReplyingToState | null) => {
     const newMessage: Message = {
       id: Date.now().toString(),
-      senderName: 'Elena Marchetti',
-      senderInitials: 'EM',
-      senderAvatarBg: 'bg-purple-600',
-      content: text,
+      senderName: 'You',
+      senderInitials: 'ME',
+      senderAvatarBg: 'bg-indigo-600',
+      content,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSelf: true,
+      replyingTo: replyContext || null,
     };
+
     setMessages((prev) => [...prev, newMessage]);
+    setReplyingTo(null); // Auto-clear active reply preview
+  };
+
+  const handleReplyInInput = (msg: Message) => {
+    setReplyingTo({
+      messageId: msg.id,
+      senderName: msg.senderName,
+      content: msg.content,
+    });
   };
 
   return (
-    <main className="flex-1 flex flex-col bg-[#0b0c10] h-full overflow-hidden">
-      <ChatHeader roomName={activeRoomId} topic={topic} />
-      <MessageList messages={messages} />
-      <MessageInput channelName={activeRoomId} onSendMessage={handleSendMessage} />
-    </main>
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-[#0b0c10] overflow-hidden">
+      <ChatHeader roomName="dev-general" />
+      
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <MessageList
+          messages={messages}
+          onReplyInInput={handleReplyInInput}
+        />
+      </div>
+
+      <MessageInput
+        channelName="dev-general"
+        onSendMessage={handleSendMessage}
+        replyingTo={replyingTo}
+        onCancelReply={() => setReplyingTo(null)}
+      />
+    </div>
   );
 };
