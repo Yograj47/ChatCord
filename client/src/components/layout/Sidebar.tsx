@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useLayoutStore } from '../../stores/layout.store';
+import { HeaderBranding } from '#components/header/HeaderBranding';
 import { RoomsSection, type RoomItem } from '#components/sidebar/RoomsSection';
 import { DirectMessagesSection, type DMItem } from '#components/sidebar/DirectMessagesSection';
-import { WorkspaceHeader } from '#components/sidebar/WorkspaceHeader';
 import { SidebarSearch } from '#components/sidebar/SidebarSearch';
 import { PinnedSpacesSection } from '#components/sidebar/PinnedSpacesSection';
 import { UserProfileFooter } from '#components/sidebar/UserProfileFooter';
@@ -22,12 +22,11 @@ const MOCK_DMS: DMItem[] = [
 ];
 
 export const Sidebar: React.FC = () => {
-    const { isMobileSidebarOpen } = useLayoutStore();
+    const { setMobileView, setActiveRoomId } = useLayoutStore();
+
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeRoomId, setActiveRoomId] = useState('1');
     const [activeDmId, setActiveDmId] = useState<string | undefined>(undefined);
 
-    // Filter lists based on search
     const filteredRooms = MOCK_ROOMS.filter((r) =>
         r.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -38,23 +37,22 @@ export const Sidebar: React.FC = () => {
     const handleSelectRoom = (id: string) => {
         setActiveRoomId(id);
         setActiveDmId(undefined);
+        setMobileView('chat'); // Hide sidebar and navigate to chat container on mobile
     };
 
     const handleSelectDm = (id: string) => {
         setActiveDmId(id);
-        setActiveRoomId('');
+        setActiveRoomId(null);
+        setMobileView('chat'); // Hide sidebar and navigate to chat container on mobile
     };
 
     return (
-        <aside
-            className={`
-        fixed md:relative z-30 h-full w-65 bg-[#0f1117] border-r border-zinc-800/80
-        flex flex-col justify-between transition-transform duration-200 ease-in-out shrink-0
-        ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}
-        >
-            <div className="flex-1 overflow-y-auto">
-                <WorkspaceHeader name="Nocturn Labs Workspace" initials="NL" />
+        <aside className="h-full w-full bg-[#0f1117] border-r border-zinc-800/80 flex flex-col justify-between shrink-0 overflow-hidden">
+            <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="h-12 px-4 border-b border-zinc-800/80 flex items-center shrink-0">
+                    <HeaderBranding latencyMs={24} isConnected={true} />
+                </div>
+
                 <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
 
                 <div className="px-2 space-y-4">
@@ -62,16 +60,16 @@ export const Sidebar: React.FC = () => {
 
                     <RoomsSection
                         rooms={filteredRooms}
-                        activeRoomId={activeRoomId}
+                        activeRoomId="1"
                         onSelectRoom={handleSelectRoom}
-                        onCreateRoom={() => alert('Create Room Modal Trigger')}
+                        onCreateRoom={() => { }}
                     />
 
                     <DirectMessagesSection
                         dms={filteredDms}
                         activeDmId={activeDmId}
                         onSelectDm={handleSelectDm}
-                        onNewDm={() => alert('Start DM Modal Trigger')}
+                        onNewDm={() => { }}
                     />
                 </div>
             </div>

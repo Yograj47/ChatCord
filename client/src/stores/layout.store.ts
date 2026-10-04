@@ -1,34 +1,21 @@
-import { create } from "zustand";
+import { create } from 'zustand';
+
+type MobileView = 'sidebar' | 'chat';
 
 interface LayoutState {
-    isMobileSidebarOpen: boolean;
-    isWorkspaceSidebarCollapsed: boolean;
-    isCreateRoomDialogOpen: boolean;
     isGlobalSearchOpen: boolean;
-
-    setMobileSidebarOpen: (open?: boolean) => void;
-    setWorkspaceSidebarCollapsed: (collapsed?: boolean) => void;
-    setCreateRoomDialogOpen: (open: boolean) => void;
     setGlobalSearchOpen: (open: boolean) => void;
+    mobileView: MobileView;
+    setMobileView: (view: MobileView) => void;
+    activeRoomId: string | null;
+    setActiveRoomId: (id: string | null) => void;
 }
 
 export const useLayoutStore = create<LayoutState>((set) => ({
-    isMobileSidebarOpen: false,
-    isWorkspaceSidebarCollapsed: false,
-    isCreateRoomDialogOpen: false,
     isGlobalSearchOpen: false,
-
-    setMobileSidebarOpen: (open) =>
-        set((state) => ({
-            isMobileSidebarOpen: open !== undefined ? open : !state.isMobileSidebarOpen,
-        })),
-
-    setWorkspaceSidebarCollapsed: (collapsed) =>
-        set((state) => ({
-            isWorkspaceSidebarCollapsed:
-                collapsed !== undefined ? collapsed : !state.isWorkspaceSidebarCollapsed,
-        })),
-
-    setCreateRoomDialogOpen: (open) => set({ isCreateRoomDialogOpen: open }),
     setGlobalSearchOpen: (open) => set({ isGlobalSearchOpen: open }),
+    mobileView: 'chat',
+    setMobileView: (view) => set({ mobileView: view }),
+    activeRoomId: '1',
+    setActiveRoomId: (id) => set({ activeRoomId: id }),
 }));

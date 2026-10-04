@@ -18,7 +18,6 @@ export const MessageList: React.FC<MessageListProps> = ({
 }) => {
     const bottomRef = useRef<HTMLDivElement>(null);
 
-    // Auto-scroll to bottom whenever a new message is added
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages.length]);

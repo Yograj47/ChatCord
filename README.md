@@ -150,12 +150,12 @@ Current task: **Redis foundation**
 - [x] Authentication UI
 - [x] Room interface
 - [x] Message interface
-- [ ] Real-time integration
+- [x] Real-time integration
 - [x] Presence UI
-- [] Typing indicator
+- [x] Typing indicator
 - [x] Reactions
 - [x] Replies
-- [ ] Responsive design
+- [x] Responsive design
 
 ## Testing
 

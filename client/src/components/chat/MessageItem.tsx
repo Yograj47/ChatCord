@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MessageSquare, Pin, CornerDownRight } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MessageActions } from './MessageActions';
+import { useLongPress } from '../../hooks/useLongPress'; 
 
 export interface Reaction {
     emoji: string;
@@ -28,7 +29,7 @@ export interface Message {
     lastReplyTime?: string;
     reactions?: Reaction[];
     isPinned?: boolean;
-    replyingTo?: QuotedReply | null; // Quoted parent message context
+    replyingTo?: QuotedReply | null;
 }
 
 interface MessageItemProps {
@@ -48,21 +49,43 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
     const navigate = useNavigate();
     const { roomId } = useParams<{ roomId: string }>();
+    const [isMobileActive, setIsMobileActive] = useState(false);
 
     const handleOpenThread = () => {
         navigate(`/app/rooms/${roomId || 'dev-general'}/threads/${message.id}`);
+        setIsMobileActive(false);
     };
 
     const handleToggleReaction = (emoji: string) => {
         if (onReact) onReact(message.id, emoji);
     };
 
+    const longPressEvents = useLongPress({
+        threshold: 350,
+        onLongPress: () => setIsMobileActive(true),
+    });
+
     return (
-        <div className="relative group flex space-x-3 px-4 py-2 hover:bg-zinc-900/50 rounded-lg transition-colors">
+        <div
+            {...longPressEvents}
+            className={`relative group flex space-x-3 px-4 py-2 rounded-lg transition-colors ${isMobileActive ? 'bg-zinc-800/60' : 'hover:bg-zinc-900/50'
+                }`}
+        >
+            {/* Backdrop overlay to dismiss mobile menu when tapping outside */}
+            {isMobileActive && (
+                <div
+                    className="fixed inset-0 z-20 sm:hidden"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMobileActive(false);
+                    }}
+                />
+            )}
+
             {/* Sender Avatar */}
             <div
                 className={`w-8 h-8 rounded-full ${message.senderAvatarBg || 'bg-indigo-600'
-                    } border border-zinc-700/50 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5`}
+                    } border border-zinc-700/50 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 select-none`}
             >
                 {message.senderInitials}
             </div>
@@ -83,7 +106,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                     )}
                 </div>
 
-                {/* --- Quoted Reply Highlight Box --- */}
+                {/* Quoted Reply Box */}
                 {message.replyingTo && (
                     <div className="flex items-center space-x-1.5 mt-1 mb-1 px-2.5 py-1 bg-zinc-800/40 border-l-2 border-indigo-500 rounded-r text-[11px] text-zinc-400 max-w-xl truncate">
                         <CornerDownRight className="h-3 w-3 text-indigo-400 shrink-0" />
@@ -97,7 +120,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                 )}
 
                 {/* Message Body */}
-                <p className="text-xs text-zinc-300 leading-relaxed break-words mt-0.5">
+                <p className="text-xs text-zinc-300 leading-relaxed wrap-break-word mt-0.5 select-text">
                     {message.content}
                 </p>
 
@@ -145,6 +168,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             {/* Action Toolbar */}
             <MessageActions
                 message={message}
+                isMobileActive={isMobileActive}
+                onCloseMobileMenu={() => setIsMobileActive(false)}
                 onReact={onReact}
                 onReplyInInput={onReplyInInput}
                 onOpenThread={handleOpenThread}
