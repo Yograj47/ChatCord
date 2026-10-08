@@ -4,13 +4,16 @@ A full-stack real-time communication platform built as an evolution of a simple 
 
 The goal is to rebuild ChatCord into a production-oriented application demonstrating modern full-stack engineering practices, including authentication, authorization, persistent messaging, real-time communication, caching, security, testing, and deployment.
 
+---
+
 ## Status
 
 🚧 **In Development**
 
-Current milestone: **Real-Time Foundation**
+Current milestone: **Authentication Integration**
 
-Current task: **Redis foundation**
+Current task: **Frontend ↔ Backend authentication integration**
+
 ---
 
 ## Tech Stack
@@ -45,6 +48,8 @@ Current task: **Redis foundation**
 
 - OAuth 2.0
 - OpenID Connect
+- Google Authentication
+- Cookie-based Sessions
 
 ---
 
@@ -85,7 +90,7 @@ Current task: **Redis foundation**
 - [x] Protect API routes
 - [x] Define roles and permissions
 
-### Authentication hardening
+### Authentication Hardening
 
 - [x] Review Google OAuth edge cases
 - [x] Review session guard behavior
@@ -125,17 +130,18 @@ Current task: **Redis foundation**
 - [x] Typing indicators
 - [x] Join/leave events
 - [x] Connection handling
+- [x] Socket authentication
 
 ## Redis
 
 - [x] Configure Redis
-- [x] Presence state   
-- [x] Typing   state
+- [x] Presence state
+- [x] Typing state
 - [x] Caching
 - [x] Rate limiting
 - [x] Socket.IO Redis adapter
 
-## Frontend
+## Frontend Foundation
 
 - [x] Initialize React client
 - [x] Configure TypeScript
@@ -147,15 +153,64 @@ Current task: **Redis foundation**
 - [x] Configure API client
 - [x] Configure Socket.IO client
 - [x] Establish frontend application layout
-- [] Authentication UI
-- [ ] Room interface
-- [ ] Message interface
-- [ ] Real-time integration
-- [ ] Presence UI
-- [ ] Typing indicator
-- [ ] Reactions
-- [ ] Replies
-- [ ] Responsive design
+
+## Frontend UI
+
+- [x] Authentication UI
+- [x] Room interface
+- [x] Message interface
+- [x] Real-time interface
+- [x] Presence UI
+- [x] Typing indicator
+- [x] Reactions UI
+- [x] Replies UI
+- [x] Responsive design
+
+## Authentication Integration
+
+- [ ] Establish frontend authentication API client
+- [ ] Integrate session/current-user API
+- [ ] Integrate Google OAuth flow
+- [ ] Integrate OAuth callback
+- [ ] Integrate guest session flow
+- [ ] Integrate username onboarding
+- [ ] Implement authenticated route protection
+- [ ] Implement authentication state handling
+- [ ] Implement logout
+- [ ] Handle session expiration
+- [ ] Handle authentication errors
+- [ ] Test frontend ↔ backend authentication flow
+
+## Room Integration
+
+- [ ] Integrate room API
+- [ ] Load authenticated user's rooms
+- [ ] Integrate room creation
+- [ ] Integrate room details
+- [ ] Integrate room membership
+- [ ] Integrate room permissions
+- [ ] Connect room navigation to backend data
+
+## Messaging Integration
+
+- [ ] Integrate message history API
+- [ ] Integrate message creation
+- [ ] Integrate message editing
+- [ ] Integrate message deletion
+- [ ] Integrate message pagination
+- [ ] Integrate message replies
+- [ ] Integrate message reactions
+- [ ] Integrate message search
+
+## Real-Time Integration
+
+- [ ] Integrate Socket.IO connection lifecycle
+- [ ] Integrate room join/leave events
+- [ ] Integrate real-time messages
+- [ ] Integrate online presence
+- [ ] Integrate typing indicators
+- [ ] Handle socket reconnection
+- [ ] Synchronize realtime events with server state
 
 ## Testing
 
@@ -208,74 +263,3 @@ Merge into main
  ↓
 Update tracker
 ```
-
-`main` is kept stable while feature work is developed on dedicated branches.
-
----
-
-# Project Structure
-
-```text
-ChatCord/
-├── client/
-├── server/
-├── docs/
-│   ├── architecture.md
-│   └── decisions/
-├── docker/
-├── .env.example
-├── .gitignore
-├── LICENSE
-└── README.md
-```
-
----
-
-# Current Checkpoint
-
-### Completed
-
-- Repository initialized
-- Project foundation established
-- React + TypeScript client initialized
-- NestJS server initialized
-- Backend module structure established
-- Environment configuration and validation established
-- MongoDB Atlas connected
-- Mongoose configured
-- User schema established
-- Room schema established
-- Message schema established
-- Authentication foundation established
-- Session authentication established
-- Room creation and management established
-- Room membership and permissions established
-- Request validation configured
-- API documentation configured
-- Development tooling configured
-- Architecture documented
-- Messaging foundation established
-- Message creation and persistence established
-- Message history retrieval established
-- Message editing and deletion established
-- Socket.IO configured
-- Socket authentication established
-- Room socket connections established
-- Real-time messaging established
-- Online presence established
-- Typing indicators established
-- Room join/leave events established
-- Socket connection handling established
-
-### Next
-
-**Redis foundation**
-
-Configure Redis for ephemeral and shared realtime state, beginning with:
-
-- Redis connection
-- Presence state
-- Typing state
-- Caching
-- Rate limiting
-- Socket.IO Redis adapter

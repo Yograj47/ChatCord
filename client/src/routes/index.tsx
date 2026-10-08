@@ -5,38 +5,36 @@ import { WelcomePage } from '../pages/auth/WelcomePage';
 import { OAuthCallbackPage } from '../pages/auth/OAuthCallBackPage';
 import { OnboardingLayout } from '../layouts/OnBoardingLayout';
 import { AppLayout } from '../layouts/AppLayout';
+import { ChatContainer } from '../components/chat/ChatContainer';
 
 export const AppRouter: React.FC = () => {
     return (
         <BrowserRouter>
             <Routes>
-                {/* ========================================================= */}
-                {/* 1. PUBLIC / AUTHENTICATION LAYOUT                          */}
-                {/* ========================================================= */}
+                {/* 1. PUBLIC / AUTHENTICATION LAYOUT */}
                 <Route element={<AuthLayout />}>
                     <Route path="/" element={<WelcomePage />} />
                     <Route path="/auth/callback" element={<OAuthCallbackPage />} />
                 </Route>
 
-                {/* ========================================================= */}
-                {/* 2. FIRST-TIME USER ONBOARDING LAYOUT                      */}
-                {/* ========================================================= */}
+                {/* 2. FIRST-TIME USER ONBOARDING LAYOUT */}
                 <Route element={<OnboardingLayout />}>
                     {/* <Route path="/onboarding/username" element={<UsernamePage />} /> */}
                 </Route>
 
-                {/* ========================================================= */}
-                {/* 3. AUTHENTICATED WORKSPACE LAYOUT (3-Column Workspace)   */}
-                {/* ========================================================= */}
+                {/* 3. AUTHENTICATED WORKSPACE LAYOUT */}
                 <Route path="/app" element={<AppLayout />}>
-                    {/* Default view when no room is selected */}
-                    {/* <Route index element={<EmptyWorkspaceView />} /> */}
+                    {/* Default redirect to dev-general if no room specified */}
+                    <Route index element={<Navigate to="/app/rooms/dev-general" replace />} />
 
-                    {/* Active room view */}
-                    {/* <Route path="rooms/:roomId" element={<RoomView />} />
+                    {/* Active channel / room view */}
+                    <Route path="rooms/:roomId" element={<ChatContainer />} />
 
-                    {/* Contextual Thread route (keeps RoomView loaded in main panel) */}
-                    {/* <Route path="rooms/:roomId/threads/:messageId" element={<RoomView />} />  */}
+                    {/* Active room with thread side panel opened */}
+                    <Route path="rooms/:roomId/threads/:messageId" element={<ChatContainer />} />
+
+                    {/* Active Direct Message route */}
+                    <Route path="dms/:dmId" element={<ChatContainer />} />
                 </Route>
 
                 {/* Catch-all fallback redirect */}

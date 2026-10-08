@@ -5,6 +5,7 @@ import { Room, RoomSchema } from './schemas/room.schema';
 import { RoomsService } from './rooms.service';
 import { RoomsController } from './rooms.controller';
 import { AuthModule } from '../auth/auth.module';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
@@ -15,9 +16,10 @@ import { AuthModule } from '../auth/auth.module';
         schema: RoomSchema,
       },
     ]),
+    RedisModule
   ],
   providers: [RoomsService],
   exports: [RoomsService],
   controllers: [RoomsController],
 })
-export class RoomsModule {}
+export class RoomsModule { }
