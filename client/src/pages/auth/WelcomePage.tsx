@@ -2,20 +2,29 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserCheck, ArrowRight } from 'lucide-react';
 import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton';
+import { useAuth } from '../../hooks/useAuth';
 
 export const WelcomePage: React.FC = () => {
-    const [isAuthenticating, setIsAuthenticating] = useState(false);
+    const [isGuestLoading, setIsGuestLoading] = useState(false);
+    const { loginAsGuest } = useAuth();
     const navigate = useNavigate();
 
     const handleGoogleSignIn = () => {
-        setIsAuthenticating(true);
-        setTimeout(() => {
-            navigate('/auth/callback?code=mock_oauth_code');
-        }, 600);
+        // Redirects browser directly to NestJS Google OAuth strategy endpoint
+        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+        window.location.href = `${backendUrl}/auth/google`;
     };
 
-    const handleGuestSignIn = () => {
-        navigate('/app');
+    const handleGuestSignIn = async () => {
+        setIsGuestLoading(true);
+        try {
+            await loginAsGuest();
+            navigate('/app');
+        } catch (err) {
+            console.error('Guest login failed:', err);
+        } finally {
+            setIsGuestLoading(false);
+        }
     };
 
     return (
@@ -33,7 +42,6 @@ export const WelcomePage: React.FC = () => {
             {/* Auth Actions */}
             <div className="w-full mt-6 space-y-3">
                 <GoogleLoginButton
-                    isLoading={isAuthenticating}
                     onClick={handleGoogleSignIn}
                 />
 
@@ -49,12 +57,12 @@ export const WelcomePage: React.FC = () => {
                 <button
                     type="button"
                     onClick={handleGuestSignIn}
-                    disabled={isAuthenticating}
+                    disabled={isGuestLoading}
                     className="w-full flex items-center justify-between px-4 py-2.5 bg-zinc-900/50 hover:bg-zinc-800/60 text-zinc-300 hover:text-zinc-100 text-xs font-medium rounded-xl border border-zinc-800 transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-zinc-700 disabled:opacity-50 group"
                 >
                     <div className="flex items-center space-x-2.5">
                         <UserCheck className="h-4 w-4 text-zinc-400 group-hover:text-zinc-200 transition-colors" />
-                        <span>Continue as Guest</span>
+                        <span>{isGuestLoading ? 'Creating guest session...' : 'Continue as Guest'}</span>
                     </div>
                     <ArrowRight className="h-3.5 w-3.5 text-zinc-500 group-hover:text-zinc-200 transition-colors" />
                 </button>

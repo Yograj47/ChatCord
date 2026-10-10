@@ -168,15 +168,15 @@ Current task: **Frontend ↔ Backend authentication integration**
 
 ## Authentication Integration
 
-- [ ] Establish frontend authentication API client
-- [ ] Integrate session/current-user API
-- [ ] Integrate Google OAuth flow
-- [ ] Integrate OAuth callback
-- [ ] Integrate guest session flow
+- [x] Establish frontend authentication API client
+- [x] Integrate session/current-user API
+- [x] Integrate Google OAuth flow
+- [x] Integrate OAuth callback
+- [x] Integrate guest session flow
 - [ ] Integrate username onboarding
 - [ ] Implement authenticated route protection
-- [ ] Implement authentication state handling
-- [ ] Implement logout
+- [x] Implement authentication state handling
+- [x] Implement logout
 - [ ] Handle session expiration
 - [ ] Handle authentication errors
 - [ ] Test frontend ↔ backend authentication flow
