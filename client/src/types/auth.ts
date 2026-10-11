@@ -39,7 +39,7 @@ export interface UserIdentity {
 export interface User {
     id: string;
     type: UserType;
-    username: string;
+    username?: string;
     displayName: string;
     email?: string;
     identity?: UserIdentity;
@@ -50,6 +50,7 @@ export interface User {
 export interface SessionResponse {
     id?: string;
     sessionId: string;
-    type: string;
+    type: 'guest' | 'registered';
     user?: User;
+    requiresOnboarding: boolean;
 }

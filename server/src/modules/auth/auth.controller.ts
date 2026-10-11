@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -27,11 +27,11 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   @GoogleLoginDecorator()
   @Get('google')
-  googleLogin() {}
+  googleLogin() { }
 
   @GoogleCallbackDecorator()
   @Get('google/callback')
@@ -111,7 +111,10 @@ export class AuthController {
     },
   ) {
     if (!sessionPayload?.id) {
-      return sessionPayload;
+      return {
+        ...sessionPayload,
+        requiresOnboarding: false,
+      };
     }
 
     const user = await this.usersService.findById(sessionPayload.id);
@@ -119,7 +122,26 @@ export class AuthController {
     return {
       ...sessionPayload,
       user,
+      requiresOnboarding:
+        sessionPayload.type === 'registered' && !user?.username,
     };
+  }
+
+  @Post('onboarding')
+  async completeOnboarding(
+    @CurrentUser() sessionPayload: { id?: string; type: string },
+    @Body() dto: { username: string; displayName?: string },
+  ) {
+    if (!sessionPayload?.id || sessionPayload.type !== 'registered') {
+      throw new UnauthorizedException('Invalid session for onboarding.');
+    }
+
+    if (dto.displayName) {
+      await this.usersService.updateDisplayName(sessionPayload.id, dto.displayName);
+    }
+
+    const updatedUser = await this.usersService.setUsername(sessionPayload.id, dto.username);
+    return updatedUser;
   }
 
   @LogoutDecorator()
