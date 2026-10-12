@@ -173,13 +173,13 @@ Current task: **Frontend ↔ Backend authentication integration**
 - [x] Integrate Google OAuth flow
 - [x] Integrate OAuth callback
 - [x] Integrate guest session flow
-- [ ] Integrate username onboarding
-- [ ] Implement authenticated route protection
+- [x] Integrate username onboarding
+- [x] Implement authenticated route protection
 - [x] Implement authentication state handling
 - [x] Implement logout
-- [ ] Handle session expiration
-- [ ] Handle authentication errors
-- [ ] Test frontend ↔ backend authentication flow
+- [x] Handle session expiration
+- [x] Handle authentication errors
+- [x] Test frontend ↔ backend authentication flow
 
 ## Room Integration
 

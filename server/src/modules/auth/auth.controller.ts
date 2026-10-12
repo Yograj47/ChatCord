@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -19,6 +19,7 @@ import {
 
 import { CurrentUser } from './decorators/current-user.decorator';
 import { GoogleOneTapDto } from './dto/google-one-tap.dto';
+import { SessionGuard } from './guards/session.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -127,6 +128,7 @@ export class AuthController {
     };
   }
 
+  @UseGuards(SessionGuard)
   @Post('onboarding')
   async completeOnboarding(
     @CurrentUser() sessionPayload: { id?: string; type: string },

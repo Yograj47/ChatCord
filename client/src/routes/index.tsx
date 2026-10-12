@@ -1,6 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { WelcomePage } from '../pages/auth/WelcomePage';
 import { OAuthCallbackPage } from '../pages/auth/OAuthCallBackPage';
@@ -10,18 +9,24 @@ import { AppLayout } from '../layouts/AppLayout';
 import { ChatContainer } from '../components/chat/ChatContainer';
 import { useAuth } from '../hooks/useAuth';
 
+// Import the layout-specific skeletons we created
+import { AuthLayoutSkeleton } from '../components/common/AuthLayoutSkeleton';
+import { OnboardingLayoutSkeleton } from '../components/common/OnboardingLayoutSkeleton';
+import { AppLayoutSkeleton } from '../components/common/AppLayoutSkeleton';
+
 export const AppRouter: React.FC = () => {
     const { sessionData, isLoading, requiresOnboarding, isGuest } = useAuth();
+    const location = useLocation();
 
     if (isLoading) {
-        return (
-            <div className="flex h-screen w-screen items-center justify-center bg-[#0f1117]">
-                <div className="flex flex-col items-center space-y-3">
-                    <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
-                    <p className="text-xs text-zinc-400">Loading your workspace...</p>
-                </div>
-            </div>
-        );
+        // Return skeleton that matches whichever section the user is trying to access
+        if (location.pathname.startsWith('/app')) {
+            return <AppLayoutSkeleton />;
+        }
+        if (location.pathname.startsWith('/onboarding')) {
+            return <OnboardingLayoutSkeleton />;
+        }
+        return <AuthLayoutSkeleton />;
     }
 
     const isAuthenticated = Boolean(sessionData);
