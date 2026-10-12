@@ -6,6 +6,7 @@ import { Loader2, ArrowRight, AtSign, User as UserIcon } from 'lucide-react';
 import { onboardingSchema, type OnboardingFormData } from '../../types/auth';
 import { useAuth } from '#hooks/useAuth';
 import { showSuccess, showError } from '../../lib/toast'; // <-- Import toast helpers
+import axios from 'axios';
 
 export const UsernameOnboardingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -29,10 +30,23 @@ export const UsernameOnboardingPage: React.FC = () => {
             await completeOnboarding(data);
             showSuccess('Profile configured successfully! Welcome to ChatCord.'); // <-- Success toast
             navigate('/app', { replace: true });
-        } catch (err: any) {
-            const message = err?.response?.data?.message || 'Failed to set username. It may already be taken.';
+        } catch (err: unknown) {
+            let message = 'Failed to set username. It may already be taken.';
+
+            if (axios.isAxiosError<{ message?: string | string[] }>(err)) {
+                const apiMessage = err.response?.data?.message;
+
+                if (Array.isArray(apiMessage)) {
+                    message = apiMessage.join(', ');
+                } else if (apiMessage) {
+                    message = apiMessage;
+                }
+            } else if (err instanceof Error) {
+                message = err.message;
+            }
+
             setError('username', { type: 'server', message });
-            showError(message); // <-- Error toast notification
+            showError(message);
         }
     };
 
