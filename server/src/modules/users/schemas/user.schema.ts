@@ -27,13 +27,16 @@ export class User {
   type!: UserType;
 
   @Prop({
-    required: true,
+    required: false,
     unique: true,
-    index: true,
+    sparse: true,
     trim: true,
     lowercase: true,
+    minlength: 3,
+    maxlength: 20,
+    match: /^[a-z0-9_]+$/,
   })
-  username!: string;
+  username?: string;
 
   @Prop({
     required: true,

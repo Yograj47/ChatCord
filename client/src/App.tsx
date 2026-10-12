@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { AppRouter } from './routes';
 import { useThemeStore } from './stores/theme.store';
+import { Toaster } from 'sonner';
 
 export const App: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
@@ -20,7 +21,19 @@ export const App: React.FC = () => {
     }
   }, [theme]);
 
-  return <AppRouter />;
+  return (
+    <>
+      <AppRouter />
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        closeButton
+        toastOptions={{
+          className: 'font-sans text-xs',
+        }}
+      />
+    </>
+  );
 };
 
 export default App;

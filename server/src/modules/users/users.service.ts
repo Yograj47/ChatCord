@@ -15,7 +15,7 @@ export class UsersService {
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
-  ) {}
+  ) { }
 
   async findByGoogleId(providerId: string): Promise<UserDocument | null> {
     return this.userModel
@@ -44,7 +44,7 @@ export class UsersService {
   }): Promise<UserDocument> {
     const user = new this.userModel({
       type: UserType.REGISTERED,
-      username: this.generateUsername(data.email),
+      // username left undefined to trigger onboarding!
       displayName: data.displayName,
       email: data.email,
       identity: {
@@ -53,13 +53,23 @@ export class UsersService {
       },
       avatar: data.avatarUrl
         ? {
-            url: data.avatarUrl,
-            source: AvatarSource.GOOGLE,
-          }
+          url: data.avatarUrl,
+          source: AvatarSource.GOOGLE,
+        }
         : undefined,
     });
 
     return user.save();
+  }
+
+  async setUsername(userId: string, username: string): Promise<UserDocument | null> {
+    return this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { username: username.trim().toLowerCase() },
+        { new: true, runValidators: true },
+      )
+      .exec();
   }
 
   async updateDisplayName(
@@ -81,13 +91,13 @@ export class UsersService {
     return result.deletedCount === 1;
   }
 
-  private generateUsername(email: string): string {
-    const base =
-      email
-        .split('@')[0]
-        .toLowerCase()
-        .replace(/[^a-z0-9_]/g, '') || 'user';
+  // private generateUsername(email: string): string {
+  //   const base =
+  //     email
+  //       .split('@')[0]
+  //       .toLowerCase()
+  //       .replace(/[^a-z0-9_]/g, '') || 'user';
 
-    return `${base}_${randomBytes(3).toString('hex')}`;
-  }
+  //   return `${base}_${randomBytes(3).toString('hex')}`;
+  // }
 }
