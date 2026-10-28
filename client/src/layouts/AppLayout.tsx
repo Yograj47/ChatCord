@@ -5,6 +5,7 @@ import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
 import { ThreadPanel } from '../components/layout/ThreadPanel';
 import { GlobalSearchModal } from '../components/modals/GlobalSearchModal';
+import { CreateRoomModal } from '../components/modals/CreateRoomModal'; 
 
 export const AppLayout: React.FC = () => {
     const { mobileView } = useLayoutStore();
@@ -44,8 +45,9 @@ export const AppLayout: React.FC = () => {
                 </div>
             </div>
 
-            {/* 3. Global Overlapping Search Overlay */}
+            {/* 3. Global Overlapping Modals */}
             <GlobalSearchModal />
+            <CreateRoomModal /> 
         </div>
     );
 };

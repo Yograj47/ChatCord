@@ -183,13 +183,13 @@ Current task: **Frontend ↔ Backend authentication integration**
 
 ## Room Integration
 
-- [ ] Integrate room API
-- [ ] Load authenticated user's rooms
-- [ ] Integrate room creation
-- [ ] Integrate room details
+- [x] Integrate room API
+- [x] Load authenticated user's rooms
+- [x] Integrate room creation
+- [x] Integrate room details
 - [ ] Integrate room membership
 - [ ] Integrate room permissions
-- [ ] Connect room navigation to backend data
+- [x] Connect room navigation to backend data
 
 ## Messaging Integration
 

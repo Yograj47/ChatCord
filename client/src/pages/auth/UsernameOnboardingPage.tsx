@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, ArrowRight, AtSign, User as UserIcon } from 'lucide-react';
 import { onboardingSchema, type OnboardingFormData } from '../../types/auth';
 import { useAuth } from '#hooks/useAuth';
-import { showSuccess, showError } from '../../lib/toast'; // <-- Import toast helpers
+import { showSuccess, showError } from '../../lib/toast'; 
 import axios from 'axios';
 
 export const UsernameOnboardingPage: React.FC = () => {
@@ -28,7 +28,7 @@ export const UsernameOnboardingPage: React.FC = () => {
     const onSubmit = async (data: OnboardingFormData) => {
         try {
             await completeOnboarding(data);
-            showSuccess('Profile configured successfully! Welcome to ChatCord.'); // <-- Success toast
+            showSuccess('Profile configured successfully! Welcome to ChatCord.'); 
             navigate('/app', { replace: true });
         } catch (err: unknown) {
             let message = 'Failed to set username. It may already be taken.';

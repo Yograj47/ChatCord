@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { isValidObjectId, Model, Types } from 'mongoose';
 import {
   Room,
   RoomDocument,
@@ -23,7 +23,7 @@ export class RoomsService {
     @InjectModel(Room.name)
     private readonly roomModel: Model<RoomDocument>,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   private roomCacheKey(roomId: string): string {
     return `cache:room:${roomId}`;
@@ -80,7 +80,8 @@ export class RoomsService {
       return cacheRoom;
     }
 
-    const room = await this.roomModel.findById(roomId).exec();
+    const query = isValidObjectId(roomId) ? { _id: roomId } : { slug: roomId };
+    const room = await this.roomModel.findOne(query).exec();
 
     if (!room) {
       throw new NotFoundException('Room not found.');
