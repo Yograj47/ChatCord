@@ -9,7 +9,9 @@ import { TypingIndicator } from './TypingIndicator';
 import { type Message } from './MessageItem';
 import { useAppStore } from '../../stores/app.store';
 import { useComposerStore } from '../../stores/composer.store';
-import { useRoomDetail } from '#hooks/useRoom';
+import { useRoomDetail, useRooms } from '#hooks/useRoom';
+import { EditRoomModal } from '../modals/EditRoomModal';
+import type { UpdateRoomDto } from '../../types/room';
 
 export const ChatContainer: React.FC = () => {
   const { roomId } = useParams<{ roomId?: string }>();
@@ -17,11 +19,12 @@ export const ChatContainer: React.FC = () => {
 
   const { isConnected } = useSocket();
   const setActiveRoomId = useAppStore((s) => s.setActiveRoomId);
+  const isEditRoomOpen = useAppStore((s) => s.isEditRoomOpen);
+  const setEditRoomOpen = useAppStore((s) => s.setEditRoomOpen);
 
-  console.log(roomId);
-  
-  // Fetch real room details using TanStack Query
+  // Fetch real room details & mutation hooks using TanStack Query
   const { data: room, isLoading: isLoadingRoom } = useRoomDetail(activeRoomId);
+  const { updateRoom, isUpdatingRoom } = useRooms();
 
   const {
     activeReplyTo,
@@ -50,10 +53,8 @@ export const ChatContainer: React.FC = () => {
   useEffect(() => {
     if (!activeRoomId || !isConnected) return;
 
-    // Join room socket channel
     socket.emit('join_room', { roomId: activeRoomId });
 
-    // Listen for incoming messages (stub for upcoming message integration)
     const handleNewMessage = (msg: Message) => {
       setMessages((prev) => [...prev, msg]);
     };
@@ -76,14 +77,13 @@ export const ChatContainer: React.FC = () => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       replyingTo: activeReplyTo
         ? {
-            messageId: activeReplyTo.messageId,
-            senderName: activeReplyTo.senderName,
-            content: activeReplyTo.contentSnippet,
-          }
+          messageId: activeReplyTo.messageId,
+          senderName: activeReplyTo.senderName,
+          content: activeReplyTo.contentSnippet,
+        }
         : null,
     };
 
-    // Emit message over socket if connected
     if (activeRoomId && isConnected) {
       socket.emit('send_message', { roomId: activeRoomId, content, replyTo: activeReplyTo?.messageId });
     }
@@ -100,6 +100,12 @@ export const ChatContainer: React.FC = () => {
     });
   };
 
+  const handleUpdateRoom = async (payload: UpdateRoomDto) => {
+    if (!activeRoomId) return;
+    await updateRoom({ roomId: activeRoomId, dto: payload });
+    setEditRoomOpen(false);
+  };
+
   const roomDisplayName = room?.name || (isLoadingRoom ? 'Loading room...' : 'Select a room');
   const roomTopic = room?.description || `Connected to ChatCord (${isConnected ? 'Live' : 'Connecting...'})`;
 
@@ -108,6 +114,7 @@ export const ChatContainer: React.FC = () => {
       <ChatHeader
         roomName={roomDisplayName}
         topic={roomTopic}
+        onOpenEdit={() => setEditRoomOpen(true)}
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto">
@@ -125,14 +132,26 @@ export const ChatContainer: React.FC = () => {
         replyingTo={
           activeReplyTo
             ? {
-                messageId: activeReplyTo.messageId,
-                senderName: activeReplyTo.senderName,
-                content: activeReplyTo.contentSnippet,
-              }
+              messageId: activeReplyTo.messageId,
+              senderName: activeReplyTo.senderName,
+              content: activeReplyTo.contentSnippet,
+            }
             : null
         }
         onCancelReply={clearReplyToMessage}
       />
+
+      {/* Global Edit Room Modal triggered from ChatHeader */}
+      {activeRoomId && (
+        <EditRoomModal
+          isOpen={isEditRoomOpen}
+          onClose={() => setEditRoomOpen(false)}
+          roomName={room?.name || ''}
+          roomDescription={room?.description}
+          onUpdateRoom={handleUpdateRoom}
+          isUpdating={isUpdatingRoom}
+        />
+      )}
     </div>
   );
 };

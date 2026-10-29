@@ -190,23 +190,21 @@ export class RoomsService {
       );
     }
 
-    if (dto.name !== undefined) {
-      room.name = dto.name.trim();
+    // Build update payload dynamically
+    const updateData: any = {};
+    if (dto.name !== undefined) updateData.name = dto.name.trim();
+    if (dto.description !== undefined) updateData.description = dto.description.trim();
+    if (dto.visibility !== undefined) updateData.visibility = dto.visibility;
+    if (dto.capabilities !== undefined) updateData.capabilities = dto.capabilities;
+
+    const updatedRoom = await this.roomModel
+      .findByIdAndUpdate(roomId, { $set: updateData }, { new: true, runValidators: true })
+      .exec();
+
+    if (!updatedRoom) {
+      throw new NotFoundException('Room not found');
     }
 
-    if (dto.description !== undefined) {
-      room.description = dto.description.trim();
-    }
-
-    if (dto.visibility !== undefined) {
-      room.visibility = dto.visibility;
-    }
-
-    if (dto.capabilities !== undefined) {
-      room.capabilities = dto.capabilities;
-    }
-
-    const updatedRoom = await room.save();
     await this.invalidateRoomCache(roomId);
 
     return updatedRoom;
