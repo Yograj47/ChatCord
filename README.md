@@ -181,15 +181,27 @@ Current task: **Frontend ↔ Backend authentication integration**
 - [x] Handle authentication errors
 - [x] Test frontend ↔ backend authentication flow
 
-## Room Integration
+### Room Integration
 
-- [ ] Integrate room API
-- [ ] Load authenticated user's rooms
-- [ ] Integrate room creation
-- [ ] Integrate room details
+- [x] Integrate room API
+- [x] Load authenticated user's rooms
+- [x] Integrate room creation
+- [x] Integrate room details and editing
 - [ ] Integrate room membership
+- [x] Connect room navigation to backend data
 - [ ] Integrate room permissions
-- [ ] Connect room navigation to backend data
+
+**Status:** Core features implemented; membership and permissions pending.
+
+### Next Milestone: Social & Invitations
+
+- [ ] Review existing user, authentication, room, and DM modules
+- [ ] Implement registered-user search
+- [ ] Implement friend requests and friendship management
+- [ ] Integrate friend-only direct messages
+- [ ] Implement room invitations
+- [ ] Integrate invitation acceptance with room membership
+- [ ] Add authorization and module tests
 
 ## Messaging Integration
 

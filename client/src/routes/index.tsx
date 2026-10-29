@@ -13,6 +13,7 @@ import { useAuth } from '../hooks/useAuth';
 import { AuthLayoutSkeleton } from '../components/common/AuthLayoutSkeleton';
 import { OnboardingLayoutSkeleton } from '../components/common/OnboardingLayoutSkeleton';
 import { AppLayoutSkeleton } from '../components/common/AppLayoutSkeleton';
+import { AppHomeDashboard } from '#components/chat/AppHomeDashboard';
 
 export const AppRouter: React.FC = () => {
     const { sessionData, isLoading, requiresOnboarding, isGuest } = useAuth();
@@ -81,8 +82,8 @@ export const AppRouter: React.FC = () => {
                     )
                 }
             >
-                {/* Default redirect to dev-general if no room specified */}
-                <Route index element={<Navigate to="/app/rooms/dev-general" replace />} />
+                {/* Default redirect to dev-general if no */}
+                <Route index element={<AppHomeDashboard />} />
 
                 {/* Active channel / room view */}
                 <Route path="rooms/:roomId" element={<ChatContainer />} />

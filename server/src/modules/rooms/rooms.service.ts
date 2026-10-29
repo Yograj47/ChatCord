@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { isValidObjectId, Model, Types } from 'mongoose';
 import {
   Room,
   RoomDocument,
@@ -23,7 +23,7 @@ export class RoomsService {
     @InjectModel(Room.name)
     private readonly roomModel: Model<RoomDocument>,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   private roomCacheKey(roomId: string): string {
     return `cache:room:${roomId}`;
@@ -80,7 +80,8 @@ export class RoomsService {
       return cacheRoom;
     }
 
-    const room = await this.roomModel.findById(roomId).exec();
+    const query = isValidObjectId(roomId) ? { _id: roomId } : { slug: roomId };
+    const room = await this.roomModel.findOne(query).exec();
 
     if (!room) {
       throw new NotFoundException('Room not found.');
@@ -189,23 +190,21 @@ export class RoomsService {
       );
     }
 
-    if (dto.name !== undefined) {
-      room.name = dto.name.trim();
+    // Build update payload dynamically
+    const updateData: any = {};
+    if (dto.name !== undefined) updateData.name = dto.name.trim();
+    if (dto.description !== undefined) updateData.description = dto.description.trim();
+    if (dto.visibility !== undefined) updateData.visibility = dto.visibility;
+    if (dto.capabilities !== undefined) updateData.capabilities = dto.capabilities;
+
+    const updatedRoom = await this.roomModel
+      .findByIdAndUpdate(roomId, { $set: updateData }, { new: true, runValidators: true })
+      .exec();
+
+    if (!updatedRoom) {
+      throw new NotFoundException('Room not found');
     }
 
-    if (dto.description !== undefined) {
-      room.description = dto.description.trim();
-    }
-
-    if (dto.visibility !== undefined) {
-      room.visibility = dto.visibility;
-    }
-
-    if (dto.capabilities !== undefined) {
-      room.capabilities = dto.capabilities;
-    }
-
-    const updatedRoom = await room.save();
     await this.invalidateRoomCache(roomId);
 
     return updatedRoom;

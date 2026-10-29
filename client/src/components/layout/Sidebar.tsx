@@ -6,14 +6,9 @@ import { DirectMessagesSection, type DMItem } from '#components/sidebar/DirectMe
 import { SidebarSearch } from '#components/sidebar/SidebarSearch';
 import { PinnedSpacesSection } from '#components/sidebar/PinnedSpacesSection';
 import { UserProfileFooter } from '#components/sidebar/UserProfileFooter';
-
-const MOCK_ROOMS: RoomItem[] = [
-    { id: '1', name: 'Dev-General', unreadCount: 24 },
-    { id: '2', name: 'Backend-Team' },
-    { id: '3', name: 'Frontend-Gang' },
-    { id: '4', name: 'Mobile-Squad' },
-    { id: '5', name: 'DevOps-Hub' },
-];
+import { useAppStore } from '../../stores/app.store';
+import { useRooms } from '#hooks/useRoom';
+import { useNavigate } from 'react-router-dom';
 
 const MOCK_DMS: DMItem[] = [
     { id: 'dm1', name: 'Julian Reyes', isOnline: true },
@@ -22,14 +17,27 @@ const MOCK_DMS: DMItem[] = [
 ];
 
 export const Sidebar: React.FC = () => {
-    const { setMobileView, setActiveRoomId } = useLayoutStore();
+    const navigate = useNavigate();
+    const { setMobileView } = useLayoutStore();
+    const { activeRoomId, setActiveRoomId, setCreateRoomOpen } = useAppStore();
+    const { rooms: backendRooms, isLoadingRooms } = useRooms();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDmId, setActiveDmId] = useState<string | undefined>(undefined);
 
-    const filteredRooms = MOCK_ROOMS.filter((r) =>
+    // Map backend rooms to RoomItem shape & filter by search query
+    const roomItems: RoomItem[] = backendRooms
+        .filter((r) => r.type === 'group')
+        .map((r) => ({
+            id: r._id,
+            name: r.name || 'Unnamed Room',
+            unreadCount: 0,
+        }));
+
+    const filteredRooms = roomItems.filter((r) =>
         r.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
     const filteredDms = MOCK_DMS.filter((d) =>
         d.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -37,13 +45,15 @@ export const Sidebar: React.FC = () => {
     const handleSelectRoom = (id: string) => {
         setActiveRoomId(id);
         setActiveDmId(undefined);
-        setMobileView('chat'); // Hide sidebar and navigate to chat container on mobile
+        setMobileView('chat');
+        navigate(`/app/rooms/${id}`);
     };
 
     const handleSelectDm = (id: string) => {
         setActiveDmId(id);
         setActiveRoomId(null);
-        setMobileView('chat'); // Hide sidebar and navigate to chat container on mobile
+        setMobileView('chat');
+        navigate(`/app/dms/${id}`);
     };
 
     return (
@@ -58,12 +68,18 @@ export const Sidebar: React.FC = () => {
                 <div className="px-2 space-y-4">
                     <PinnedSpacesSection />
 
-                    <RoomsSection
-                        rooms={filteredRooms}
-                        activeRoomId="1"
-                        onSelectRoom={handleSelectRoom}
-                        onCreateRoom={() => { }}
-                    />
+                    {isLoadingRooms ? (
+                        <div className="px-2 py-3 text-xs text-zinc-500 animate-pulse">
+                            Loading rooms...
+                        </div>
+                    ) : (
+                        <RoomsSection
+                            rooms={filteredRooms}
+                            activeRoomId={activeRoomId ?? ''}
+                            onSelectRoom={handleSelectRoom}
+                            onCreateRoom={() => setCreateRoomOpen(true)}
+                        />
+                    )}
 
                     <DirectMessagesSection
                         dms={filteredDms}
