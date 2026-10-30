@@ -35,6 +35,25 @@ export interface RoomMember {
     joinedAt: string;
 }
 
+export interface RoomMemberProfile {
+    id: string;
+    username?: string;
+    displayName: string;
+    role: RoomMemberRole;
+    joinedAt: string;
+}
+
+export interface SentRoomInvitation {
+    id: string;
+    roomId: string;
+    expiresAt: string;
+}
+
+export interface RoomInvitation extends SentRoomInvitation {
+    roomName?: string;
+    invitedBy: string;
+}
+
 export interface Room {
     _id: string;
     type: RoomType;

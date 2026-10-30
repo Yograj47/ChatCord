@@ -28,6 +28,7 @@ export class MessagesService {
     const room = await this.roomsService.findById(roomId);
 
     await this.assertMembership(roomId, senderId);
+    await this.roomsService.assertCanSend(room, senderId);
 
     if (!room.capabilities.includes(RoomCapability.TEXT)) {
       throw new ForbiddenException(

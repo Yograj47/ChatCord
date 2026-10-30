@@ -1,11 +1,21 @@
-import { Body, Controller, Get, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 
 import { AUTH_COOKIE, AUTH_SESSION } from 'src/common/constants/auth.constants';
 
-import { UserDocument } from '../users/schemas/user.schema';
+import { UserDocument, UserType } from '../users/schemas/user.schema';
 import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 
@@ -15,11 +25,15 @@ import {
   GoogleLoginDecorator,
   GuestSessionDecorator,
   LogoutDecorator,
+  Roles,
 } from './decorators';
 
 import { CurrentUser } from './decorators/current-user.decorator';
 import { GoogleOneTapDto } from './dto/google-one-tap.dto';
 import { SessionGuard } from './guards/session.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { SearchUsersDto } from './dto/search-users.dto';
+import { CompleteOnboardingDto } from './dto/complete-onboarding.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -28,11 +42,11 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
-  ) { }
+  ) {}
 
   @GoogleLoginDecorator()
   @Get('google')
-  googleLogin() { }
+  googleLogin() {}
 
   @GoogleCallbackDecorator()
   @Get('google/callback')
@@ -132,18 +146,35 @@ export class AuthController {
   @Post('onboarding')
   async completeOnboarding(
     @CurrentUser() sessionPayload: { id?: string; type: string },
-    @Body() dto: { username: string; displayName?: string },
+    @Body() dto: CompleteOnboardingDto,
   ) {
     if (!sessionPayload?.id || sessionPayload.type !== 'registered') {
       throw new UnauthorizedException('Invalid session for onboarding.');
     }
 
-    if (dto.displayName) {
-      await this.usersService.updateDisplayName(sessionPayload.id, dto.displayName);
+    return this.usersService.completeOnboarding(
+      sessionPayload.id,
+      dto.username,
+      dto.displayName,
+    );
+  }
+
+  @UseGuards(SessionGuard, RolesGuard)
+  @Roles(UserType.REGISTERED)
+  @Get('users/search')
+  async searchUsers(
+    @Query() query: SearchUsersDto,
+    @CurrentUser()
+    sessionPayload: {
+      id?: string;
+      type: UserType;
+    },
+  ) {
+    if (!sessionPayload.id) {
+      throw new UnauthorizedException('Registered user required.');
     }
 
-    const updatedUser = await this.usersService.setUsername(sessionPayload.id, dto.username);
-    return updatedUser;
+    return this.usersService.searchByUsername(query.q, sessionPayload.id);
   }
 
   @LogoutDecorator()

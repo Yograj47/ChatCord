@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useMatch } from 'react-router-dom';
 import { useLayoutStore } from '../stores/layout.store';
 import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
@@ -9,6 +9,7 @@ import { CreateRoomModal } from '../components/modals/CreateRoomModal';
 
 export const AppLayout: React.FC = () => {
     const { mobileView } = useLayoutStore();
+    const isThreadOpen = Boolean(useMatch('/app/rooms/:roomId/threads/:messageId'));
 
     return (
         <div className="h-dvh w-vw max-h-dvh max-w-vw bg-[#0a0b0e] text-zinc-100 flex overflow-hidden font-sans antialiased selection:bg-indigo-500/30">
@@ -39,9 +40,9 @@ export const AppLayout: React.FC = () => {
                     </main>
 
                     {/* Desktop Thread Panel */}
-                    <div className="hidden lg:block h-full shrink-0">
+                    {isThreadOpen && <div className="hidden lg:block h-full shrink-0">
                         <ThreadPanel />
-                    </div>
+                    </div>}
                 </div>
             </div>
 

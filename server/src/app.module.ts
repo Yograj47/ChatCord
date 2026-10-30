@@ -12,6 +12,7 @@ import { RoomsModule } from './modules/rooms/rooms.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { GatewayModule } from './modules/gateway/gateway.module';
 import { RedisModule } from './modules/redis/redis.module';
+import { FriendshipsModule } from './modules/friendships/friendships.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RedisModule } from './modules/redis/redis.module';
     MessagesModule,
     GatewayModule,
     RedisModule,
+    FriendshipsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
