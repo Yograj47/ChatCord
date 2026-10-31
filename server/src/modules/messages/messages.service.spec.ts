@@ -43,6 +43,7 @@ describe('MessagesService', () => {
   const mockMessageModel = Object.assign(mockMessageModelFactory, {
     find: jest.fn(),
     findOne: jest.fn(),
+    findOneAndUpdate: jest.fn(),
     deleteOne: jest.fn(),
   });
 
@@ -189,6 +190,11 @@ describe('MessagesService', () => {
         .fn<HydratedDocument<Message>['save']>()
         .mockResolvedValue(message);
       message.save = save;
+      mockMessageModel.findOneAndUpdate.mockReturnValue({
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Message>>>()
+          .mockResolvedValue(message),
+      });
 
       mockMessageModel.findOne.mockReturnValue({
         exec: jest
@@ -200,8 +206,14 @@ describe('MessagesService', () => {
         content: '  Updated message  ',
       });
 
-      expect(message.content).toBe('Updated message');
-      expect(save).toHaveBeenCalled();
+      expect(mockMessageModel.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          senderId: new Types.ObjectId(senderId),
+          deletedAt: null,
+        }),
+        { $set: { content: 'Updated message', editedAt: expect.any(Date) } },
+        { returnDocument: 'after', runValidators: true },
+      );
       expect(result).toBe(message);
     });
 
@@ -255,14 +267,29 @@ describe('MessagesService', () => {
           .mockResolvedValue(message),
       });
       mockMessageModel.deleteOne.mockReturnValue({ exec });
+      mockMessageModel.findOneAndUpdate.mockReturnValue({
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Message>>>()
+          .mockResolvedValue(message),
+      });
 
       await service.deleteMessage(roomId, messageId, senderId);
 
-      expect(mockMessageModel.deleteOne).toHaveBeenCalledWith({
-        _id: expect.any(Types.ObjectId),
-        roomId: expect.any(Types.ObjectId),
-      });
-      expect(exec).toHaveBeenCalled();
+      expect(mockMessageModel.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          senderId: new Types.ObjectId(senderId),
+          deletedAt: null,
+        }),
+        {
+          $set: {
+            content: '[Message deleted]',
+            reactions: [],
+            deletedAt: expect.any(Date),
+          },
+        },
+        { returnDocument: 'after' },
+      );
+      expect(mockMessageModel.deleteOne).not.toHaveBeenCalled();
     });
 
     it("should reject deleting another user's message", async () => {
@@ -282,6 +309,90 @@ describe('MessagesService', () => {
       ).rejects.toThrow(ForbiddenException);
 
       expect(mockMessageModel.deleteOne).not.toHaveBeenCalled();
+    });
+  });
+
+  it('rejects missing and deleted reply targets before insertion', async () => {
+    for (const parent of [null, createMockMessage({ deletedAt: new Date() })]) {
+      mockMessageModel.findOne.mockReturnValue({
+        exec: jest
+          .fn<() => Promise<HydratedDocument<Message> | null>>()
+          .mockResolvedValue(parent),
+      });
+      await expect(
+        service.createMessage(roomId, senderId, {
+          content: 'reply',
+          replyTo: new Types.ObjectId().toString(),
+        }),
+      ).rejects.toThrow(NotFoundException);
+    }
+    expect(mockMessageModel).not.toHaveBeenCalled();
+  });
+
+  it('binds reaction changes to the room and caller and excludes deleted messages', async () => {
+    mockMessageModel.findOneAndUpdate.mockReturnValue({
+      exec: jest
+        .fn<() => Promise<HydratedDocument<Message>>>()
+        .mockResolvedValue(createMockMessage()),
+    });
+    await service.react(
+      roomId,
+      new Types.ObjectId().toString(),
+      senderId,
+      '👍',
+      true,
+    );
+    expect(mockMessageModel.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roomId: new Types.ObjectId(roomId),
+        deletedAt: null,
+      }),
+      {
+        $addToSet: {
+          reactions: { emoji: '👍', userId: new Types.ObjectId(senderId) },
+        },
+      },
+      { returnDocument: 'after' },
+    );
+    mockRoomsService.findMembership.mockResolvedValue(null);
+    await expect(
+      service.react(
+        roomId,
+        new Types.ObjectId().toString(),
+        senderId,
+        '👍',
+        false,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('paginates with a stable cursor and treats search text literally', async () => {
+    const rows = [
+      createMockMessage(),
+      createMockMessage(),
+      createMockMessage(),
+    ];
+    const limit = jest.fn().mockReturnValue({
+      exec: jest
+        .fn<() => Promise<HydratedDocument<Message>[]>>()
+        .mockResolvedValue(rows),
+    });
+    const sort = jest.fn().mockReturnValue({ limit });
+    mockMessageModel.find.mockReturnValue({ sort });
+    const before = new Types.ObjectId().toString();
+    const result = await service.page(roomId, senderId, {
+      before,
+      limit: 2,
+      q: 'a.*',
+    });
+    expect(result.items).toHaveLength(2);
+    expect(result.nextCursor).toBe(rows[1]._id.toString());
+    expect(limit).toHaveBeenCalledWith(3);
+    expect(mockMessageModel.find).toHaveBeenCalledWith({
+      roomId: new Types.ObjectId(roomId),
+      _id: { $lt: new Types.ObjectId(before) },
+      deletedAt: null,
+      content: { $regex: 'a\\.\\*', $options: 'i' },
     });
   });
 });

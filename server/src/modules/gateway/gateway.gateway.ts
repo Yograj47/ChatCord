@@ -20,12 +20,14 @@ import {
   UseGuards,
   UsePipes,
   ValidationPipe,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { RoomEventsService } from '../rooms/room-events.service';
 import { SocketSessionGuard } from './socket-session.guard';
 import { GatewayExceptionFilter } from './gateway-exception.filter';
 import { SessionType } from '../auth/schemas/session.schema';
 import { RoomEventDto, SendMessageEventDto } from './dto/room-event.dto';
+import { MessageEventsService } from '../messages/message-events.service';
 
 interface GatewaySocketData {
   userId?: string;
@@ -71,11 +73,22 @@ type GatewaySocket = Socket<
 @UseGuards(SocketSessionGuard)
 @UseFilters(GatewayExceptionFilter)
 export class GatewayGateway
-  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
+  implements
+    OnGatewayConnection,
+    OnGatewayDisconnect,
+    OnGatewayInit,
+    OnModuleDestroy
 {
+  private shuttingDown = false;
+  onModuleDestroy() {
+    this.shuttingDown = true;
+  }
   private namespace!: Namespace;
   afterInit(namespace: Namespace) {
     this.namespace = namespace;
+    this.messageEvents.bind((roomId, event, message) =>
+      namespace.to(roomId).emit(event, message),
+    );
     namespace.use((client, next) => {
       void this.socketAuthService
         .authenticate(client)
@@ -109,6 +122,7 @@ export class GatewayGateway
     private readonly redisService: RedisService,
     private readonly rateLimitService: RateLimitService,
     private readonly roomEvents: RoomEventsService,
+    private readonly messageEvents: MessageEventsService,
   ) {}
 
   async handleConnection(client: GatewaySocket): Promise<void> {
@@ -154,7 +168,7 @@ export class GatewayGateway
 
     const remainingSockets = await this.redisService.getPresence(userId);
 
-    if (remainingSockets.length === 0) {
+    if (remainingSockets.length === 0 && !this.shuttingDown) {
       client.broadcast.emit('user-offline', { userId });
     }
 
@@ -265,11 +279,11 @@ export class GatewayGateway
       userId,
       {
         content: data.content,
+        replyTo: data.replyTo,
       },
     );
 
     // Include the sender's other tabs, and deduplicate by message ID in clients.
-    this.namespace.to(data.roomId).emit('new-message', message);
 
     return {
       ok: true,

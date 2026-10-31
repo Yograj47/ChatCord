@@ -6,6 +6,7 @@ import { RoomsModule } from '../rooms/rooms.module';
 import { Message, MessageSchema } from './schemas/message.schema';
 import { MessagesController } from './messages.controller';
 import { MessagesService } from './messages.service';
+import { MessageEventsService } from './message-events.service';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { MessagesService } from './messages.service';
     ]),
   ],
   controllers: [MessagesController],
-  providers: [MessagesService],
-  exports: [MessagesService],
+  providers: [MessagesService, MessageEventsService],
+  exports: [MessagesService, MessageEventsService],
 })
 export class MessagesModule {}
