@@ -14,7 +14,7 @@ Current milestone: **Backend Controller Testing**
 
 Current task: **Readability, naming, comments, and shared-policy cleanup**
 
-Social, messaging, and real-time integration are implemented and previously passed live verification. Backend tests now live under `server/test/controllers` and focus on HTTP controller contracts with mocked services. Service/gateway unit specs have been removed from production modules. Broader integration/end-to-end testing and deployment remain in progress; UI and folder-structure cleanup are deferred.
+Social, messaging, and real-time integration are implemented and previously passed live verification. Default backend tests live under `server/test/controllers` and focus on HTTP controller contracts with mocked services. A separate API integration suite exercises the actual application with MongoDB and Redis. Service/gateway unit specs have been removed from production modules. Automated browser testing and deployment remain in progress; UI and folder-structure cleanup are deferred.
 
 ---
 
@@ -272,10 +272,12 @@ Repeat the search check from `server` with `npx ts-node --transpile-only -r tsco
 Repeat the separate live social check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts`. It is not part of the controller-only Jest suite.
 
 - [x] Backend controller HTTP test suite (128 passing across six suites in server/test/controllers)
-- [ ] Full API integration tests with real persistence
+- [x] Full API integration tests with real persistence (19 HTTP workflows using the actual AppModule, MongoDB and Redis)
 - [x] Live DM Socket.IO integration checks (MongoDB and Redis)
 - [ ] Frontend tests
 - [ ] End-to-end tests
+
+Run the separate persistence suite from `server` with `npm run test:integration`. Each run creates and cleans up its own temporary database. All 19 workflows passed on 2026-10-31; the default 128 controller tests, backend build, TypeScript and changed-file lint also pass. External Google login and browser/Socket.IO delivery are outside this HTTP suite. See [backend tests](server/test/README.md) for setup and scope.
 
 ## DevOps
 
