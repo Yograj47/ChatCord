@@ -1,6 +1,6 @@
 # Messaging integration
 
-The client follows the room integration pattern: backend contracts in `client/src/types/message.ts`, HTTP calls in `client/src/api/message.api.ts`, and TanStack Query reads/mutations in `client/src/hooks/useMessages.ts`. ChatContainer handles room membership, connection readiness, and composition. MessageSearch, MessageDialog, MessageQuote, and MessageReplies provide separate UI components alongside MessageList, MessageItem, MessageActions, and MessageInput.
+The client follows the room integration pattern: backend contracts in `client/src/features/messaging/types/message.types.ts`, HTTP calls in `client/src/features/messaging/api/message.api.ts`, and TanStack Query reads/mutations in `client/src/features/messaging/hooks/useMessages.ts`. ChatContainer composes the conversation UI. useConversationConnection owns room joining/reconnection and realtime invalidation; message-view.ts maps persisted messages for display. MessageSearch, MessageDialog, MessageQuote, and MessageReplies provide separate UI components alongside MessageList, MessageItem, MessageActions, and MessageInput.
 
 ## API
 

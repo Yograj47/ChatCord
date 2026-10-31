@@ -14,7 +14,7 @@ Current milestone: **Backend Controller Testing**
 
 Current task: **Readability, naming, comments, and shared-policy cleanup**
 
-Social, messaging, and real-time integration are implemented and previously passed live verification. Default backend tests live under `server/test/controllers` and focus on HTTP controller contracts with mocked services. A separate API integration suite exercises the actual application with MongoDB and Redis. Service/gateway unit specs have been removed from production modules. Automated browser testing and deployment remain in progress; UI and folder-structure cleanup are deferred.
+Social, messaging, and real-time integration are implemented and previously passed live verification. Default backend tests live under `server/test/controllers` and focus on HTTP controller contracts with mocked services. A separate API integration suite exercises the actual application with MongoDB and Redis. Service/gateway unit specs have been removed from production modules. Frontend findings F1–F11 have been addressed through feature organization, regression coverage, shared state/query contracts and route splitting. Automated full browser end-to-end testing and deployment remain in progress. See [frontend cleanup](docs/frontend-cleanup-log.md).
 
 ---
 
@@ -249,7 +249,7 @@ See [presence and typing](docs/presence-typing.md) for socket contracts, lease e
 
 ## Testing
 
-Readability cleanup: redundant/commented-out source comments removed; API error parsing and message-producing permissions centralized; DTOs separated from controllers; filename casing and RealtimeGateway naming corrected. See [code quality review](docs/code-quality.md) for the DRY/SOLID assessment and remaining structural work.
+Readability cleanup: redundant/commented-out source comments removed; API error parsing and message-producing permissions centralized; DTOs separated from controllers; filename casing and RealtimeGateway naming corrected. See [frontend quality review](docs/frontend-quality-review.md) and [cleanup log](docs/frontend-cleanup-log.md) for the frontend DRY/SOLID assessment and completed changes.
 
 The default backend suite now contains controller HTTP tests only, centralized under `server/test/controllers`. All 128 tests across six suites pass, with 98.9% controller line coverage. Build, TypeScript and changed-file lint checks pass. All colocated specs and the obsolete E2E scaffold were removed. Services and external providers are mocked; controller routes, validation, session identity, responses, cookies/redirects, and error propagation are covered. The separate opt-in live verification scripts remain available. See [backend controller tests](server/test/README.md) for commands and scope. Earlier feature validation counts below refer to the previous test layout.
 
@@ -274,8 +274,10 @@ Repeat the separate live social check from `server` with `npx ts-node --transpil
 - [x] Backend controller HTTP test suite (128 passing across six suites in server/test/controllers)
 - [x] Full API integration tests with real persistence (19 HTTP workflows using the actual AppModule, MongoDB and Redis)
 - [x] Live DM Socket.IO integration checks (MongoDB and Redis)
-- [ ] Frontend tests
+- [x] Frontend behavior regression tests (39 passing across seven files)
 - [ ] End-to-end tests
+
+Frontend commands and verification scope are documented in [frontend verification](client/test/README.md). Route splitting replaces the previous oversized single bundle; `npm run check:bundle` checks the built JavaScript chunks without suppressing Vite’s warning threshold.
 
 Run the separate persistence suite from `server` with `npm run test:integration`. Each run creates and cleans up its own temporary database. All 19 workflows passed on 2026-10-31; the default 128 controller tests, backend build, TypeScript and changed-file lint also pass. External Google login and browser/Socket.IO delivery are outside this HTTP suite. See [backend tests](server/test/README.md) for setup and scope.
 
