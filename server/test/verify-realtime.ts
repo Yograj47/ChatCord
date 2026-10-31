@@ -205,7 +205,15 @@ async function main() {
           response.status(404).end();
           return;
         }
-        response.cookie(AUTH_COOKIE, tokens[0], {
+        const identities = ['alex', 'sam', 'jordan'];
+        const identity = request.query.user ?? 'alex';
+        const index =
+          typeof identity === 'string' ? identities.indexOf(identity) : -1;
+        if (index < 0 && request.query.user !== 'guest') {
+          response.status(400).end();
+          return;
+        }
+        response.cookie(AUTH_COOKIE, index < 0 ? guest.token : tokens[index], {
           httpOnly: true,
           sameSite: 'lax',
           maxAge: 20 * 60 * 1000,
@@ -437,6 +445,20 @@ async function main() {
     );
     assert((await acknowledge(sam, 'join-room', { roomId: dmId })).ok);
     if (process.argv.includes('--serve')) {
+      if (process.argv.includes('--social')) {
+        const invitationRoom = await roomService.createRoom(ids[0].toString(), {
+          type: RoomType.GROUP,
+          name: 'Verification Invitations',
+        });
+        await friendships.send(ids[2].toString(), ids[0].toString());
+        console.log(
+          `Social usernames: ${prefix}_alex, ${prefix}_sam, ${prefix}_jordan`,
+        );
+        console.log(`Invitation room: ${invitationRoom._id.toString()}`);
+        console.log(
+          'Switch isolated browser account with /__verification/start?user=alex|sam|jordan|guest on port 4188.',
+        );
+      }
       sam.on('new-message', (message: Packet) => {
         if (
           message.roomId === dmId &&

@@ -31,4 +31,4 @@ From `client`, run `node test/friends-preview.mjs`, then open `http://127.0.0.1:
 6. Start with `stale` to simulate an invitation handled elsewhere; accepting it returns 409 and refreshes the inbox.
 7. Start with `error` or `guest` to check failed loading and registered-only guidance.
 
-Restarting resets all fixture data. Stop with Ctrl+C. The frontend production build and changed-file lint are checked separately. Live browser verification against actual authenticated sessions is still pending; backend invitation behavior is covered by `server/test/verify-social.ts`.
+Restarting resets all fixture data. Stop with Ctrl+C. The frontend production build and changed-file lint are checked separately. On 2026-10-31, [live browser verification](realtime-verification.md) passed send/expiry confirmation, recipient inbox and badge, decline, acceptance with membership/sidebar/navigation, ordinary-member restrictions, unauthorized send deep links, and guest guidance. Backend expiry, concurrency, and recipient authorization are covered by `server/test/verify-social.ts`.

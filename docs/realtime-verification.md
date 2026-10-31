@@ -44,10 +44,20 @@ To finish, type `stop` and Enter into the backend harness terminal. It also supp
 
 ## Transport contract and client behavior
 
+For normal development, use `VITE_API_URL=http://localhost:3000/api` and `VITE_SOCKET_URL=http://localhost:3000` in `client/.env.local`, and `PORT=3000` / `CLIENT_URL=http://localhost:5173` in `server/.env.local`. The socket client adds `/realtime` exactly once, accepting the full namespace URL too. `/socket.io/` in browser requests is the normal transport path. Restart Vite after environment changes. Run `node test/socket-config.mjs` from `client` for URL regression checks. Hot replacement of the socket module disconnects its old connection.
+
 `join-room` and `leave-room` acknowledge `{ ok: true, roomId }`. `send-message` acknowledges `{ ok: true, data: message }`. Failures acknowledge `{ ok: false, error }`; clients without an acknowledgement callback receive an `exception` event.
 
 Successful messages broadcast `new-message` to every subscribed tab, including the sender. Clients deduplicate by MongoDB message ID. The composer clears its draft only after a successful acknowledgement and retains it on rejection. Reconnection rejoins the room and reloads persisted history, merging it with received messages.
 
-The verification runs one real backend instance with Redis enabled. Multi-instance failover, Google OAuth login, and broad load testing are outside this check. Friend-request and invitation browser actions have their own fixture checks; this live check focuses on DMs and room permissions.
+The verification runs one real backend instance with Redis enabled. Multi-instance failover, Google OAuth login, and broad load testing are outside this check.
 
 On 2026-10-30, the transport checks and real browser workflow passed. Browser evidence included a sent message and peer reply, persisted deduplicated history after reload, blocked delivery after removing the temporary friendship with the draft retained, promotion/removal controls, text permissions, public-room joining, and confirmed leaving with workspace navigation.
+
+## Social milestone verification
+
+Add `--social` to `--serve` to create an additional owner-only group and an incoming friend request. The harness prints the three temporary usernames. Switch between its isolated sessions using `http://chatcord-verify.localhost:4188/__verification/start?user=alex`, `sam`, `jordan`, or `guest`. These identities exist only in the opt-in test harness; the production app has no account-switch endpoint.
+
+On 2026-10-31, real-browser checks passed username normalization/search, sending/cancelling requests, recipient acceptance/decline, refreshed counts, confirmed friendship removal, and guest guidance. Room checks passed sending with expiry and disabled repeat action, recipient inbox/badge, decline without membership, acceptance with canonical navigation/sidebar update, regular-member permissions, unauthorized send deep links, and guest restrictions. All actions used temporary verification accounts.
+
+The backend suite additionally covers HTTP session/role guards on all friendship/invitation routes, input validation and identity spoofing, invitation inbox privacy/expiry, stale acceptance, duplicate sends, moderator/DM restrictions, and friendship-required sends. `verify-social.ts` checks real MongoDB recipient authorization, expiry, concurrent acceptance/joins, friendship transitions, and DM constraints.

@@ -30,4 +30,4 @@ Useful scenarios:
 6. Run `node test/friends-preview.mjs error` to simulate relationship-loading errors and verify actions stay disabled.
 7. Run `node test/friends-preview.mjs guest` to inspect guest sign-in guidance. Its sign-out button requires the real auth API and is not implemented by the fixture.
 
-This checks friendship-management behavior with fixtures. DM delivery, peer replies, and history after reload have also passed the [real-backend browser verification](realtime-verification.md). A broader live-browser matrix for friend-request actions remains pending. The live API behavior is covered by `server/test/verify-social.ts`.
+This fixture checks friendship-management behavior without a database. On 2026-10-31, the [real-backend browser verification](realtime-verification.md) additionally passed normalized search, send/cancel, accept/decline, confirmed removal, counts, and guest guidance against actual authenticated sessions. Live API authorization and concurrency behavior is covered by `server/test/verify-social.ts`.

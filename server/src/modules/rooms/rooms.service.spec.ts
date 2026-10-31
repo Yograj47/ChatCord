@@ -474,4 +474,65 @@ describe('RoomsService', () => {
     );
     expect(model.findOneAndUpdate).not.toHaveBeenCalled();
   });
+
+  it('rejects stale invitation acceptance without cache invalidation', async () => {
+    model.findOneAndUpdate.mockReturnValue(query(null));
+    await expect(
+      service.acceptInvitation(rid, new Types.ObjectId().toString(), tid),
+    ).rejects.toThrow(ConflictException);
+    expect(redis.deleteCache).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicate invitations and invitations to existing members', async () => {
+    model.findOneAndUpdate.mockReturnValue(query(null));
+    await expect(service.addMember(rid, oid, tid)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(redis.deleteCache).not.toHaveBeenCalled();
+  });
+
+  it('allows moderator invitations but forbids DM invitations', async () => {
+    room.members[0].role = RoomMemberRole.MODERATOR;
+    await expect(
+      service.addMember(rid, oid, outsider.toString()),
+    ).resolves.toHaveProperty('roomId', rid);
+    model.findOneAndUpdate.mockClear();
+    room.type = RoomType.DM;
+    await expect(
+      service.addMember(rid, oid, outsider.toString()),
+    ).rejects.toThrow(ForbiddenException);
+    expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('filters expired and other recipients from the invitation inbox', async () => {
+    const mine = new Types.ObjectId();
+    const expiry = new Date(Date.now() + 60000);
+    room.invitations = [
+      { _id: mine, recipient: target, invitedBy: owner, expiresAt: expiry },
+      {
+        _id: new Types.ObjectId(),
+        recipient: target,
+        invitedBy: owner,
+        expiresAt: new Date(0),
+      },
+      {
+        _id: new Types.ObjectId(),
+        recipient: outsider,
+        invitedBy: owner,
+        expiresAt: expiry,
+      },
+    ];
+    model.find.mockReturnValue({
+      select: jest.fn().mockReturnValue(query([room])),
+    });
+    await expect(service.invitations(tid)).resolves.toEqual([
+      {
+        id: mine.toString(),
+        roomId: rid,
+        roomName: 'General',
+        invitedBy: oid,
+        expiresAt: expiry,
+      },
+    ]);
+  });
 });

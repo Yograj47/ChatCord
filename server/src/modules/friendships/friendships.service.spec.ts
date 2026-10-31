@@ -18,6 +18,7 @@ describe('FriendshipsService', () => {
   const requestId = '000000000000000000000003';
   const exec = jest.fn();
   const model = {
+    exists: jest.fn(),
     find: jest.fn(),
     create: jest.fn(),
     findOneAndUpdate: jest.fn(),
@@ -34,6 +35,29 @@ describe('FriendshipsService', () => {
     service = new FriendshipsService(
       model as unknown as Model<FriendshipDocument>,
       users as unknown as UsersService,
+    );
+  });
+
+  it('requires an accepted friendship for DMs in either direction', async () => {
+    model.exists.mockReturnValue({ exec });
+    exec.mockResolvedValue(null);
+    await expect(service.assertFriends(sender, recipient)).rejects.toThrow(
+      ConflictException,
+    );
+    exec.mockResolvedValue({ _id: requestId });
+    await expect(
+      service.assertFriends(recipient, sender),
+    ).resolves.toBeUndefined();
+    expect(model.exists).toHaveBeenLastCalledWith({
+      pairKey: `${sender}:${recipient}`,
+      status: 'accepted',
+    });
+  });
+
+  it('does not remove missing or nonparticipant friendships', async () => {
+    exec.mockResolvedValue(null);
+    await expect(service.remove(sender, requestId)).rejects.toThrow(
+      NotFoundException,
     );
   });
 
