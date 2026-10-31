@@ -2,15 +2,15 @@
 
 All routes require an authenticated registered-user session cookie. Guests receive 403.
 
-| Method | Route | Purpose |
-| --- | --- | --- |
-| POST | `/api/friendships/requests` | Send a request with body `{ "recipientId": "<user ID>" }` |
-| GET | `/api/friendships/requests` | List incoming and outgoing pending requests |
-| PATCH | `/api/friendships/requests/:id/accept` | Recipient accepts a pending request |
-| DELETE | `/api/friendships/requests/:id/decline` | Recipient declines a pending request |
-| DELETE | `/api/friendships/requests/:id/cancel` | Sender cancels a pending request |
-| GET | `/api/friendships` | List accepted friendships |
-| DELETE | `/api/friendships/:id` | Either friend removes an accepted friendship |
+| Method | Route                                   | Purpose                                                   |
+| ------ | --------------------------------------- | --------------------------------------------------------- |
+| POST   | `/api/friendships/requests`             | Send a request with body `{ "recipientId": "<user ID>" }` |
+| GET    | `/api/friendships/requests`             | List incoming and outgoing pending requests               |
+| PATCH  | `/api/friendships/requests/:id/accept`  | Recipient accepts a pending request                       |
+| DELETE | `/api/friendships/requests/:id/decline` | Recipient declines a pending request                      |
+| DELETE | `/api/friendships/requests/:id/cancel`  | Sender cancels a pending request                          |
+| GET    | `/api/friendships`                      | List accepted friendships                                 |
+| DELETE | `/api/friendships/:id`                  | Either friend removes an accepted friendship              |
 
 Send and accept return `{ id, status }`. Delete operations return `{ success: true }`.
 Pending requests contain `_id`, `requester`, `recipient`, and `createdAt`.

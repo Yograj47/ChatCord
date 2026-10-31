@@ -49,7 +49,7 @@ export const EditRoomForm: React.FC<EditRoomFormProps> = ({
 
     return (
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
-            {/* Room Name */}
+
             <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-zinc-300 uppercase tracking-wider">
                     Room Name
@@ -70,7 +70,7 @@ export const EditRoomForm: React.FC<EditRoomFormProps> = ({
                 )}
             </div>
 
-            {/* Description */}
+
             <div className="space-y-1.5">
                 <label className="text-[11px] font-medium text-zinc-300 uppercase tracking-wider">
                     Description <span className="text-zinc-600 lowercase">(optional)</span>
@@ -86,7 +86,7 @@ export const EditRoomForm: React.FC<EditRoomFormProps> = ({
                 )}
             </div>
 
-            {/* Actions */}
+
             <div className="flex items-center justify-end space-x-3 pt-4 border-t border-zinc-800/80">
                 <button
                     type="button"

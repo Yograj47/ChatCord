@@ -3,7 +3,7 @@ import React from 'react';
 export const AppLayoutSkeleton: React.FC = () => {
     return (
         <div className="h-dvh w-vw max-h-dvh max-w-vw bg-[#0a0b0e] text-zinc-100 flex overflow-hidden font-sans antialiased animate-pulse">
-            {/* 1. Sidebar Skeleton */}
+
             <div className="hidden min-[900px]:flex h-full w-60 shrink-0 bg-[#0d0e13] border-r border-zinc-800/60 flex-col justify-between p-4">
                 <div className="space-y-6">
                     <div className="flex items-center space-x-2">
@@ -25,9 +25,9 @@ export const AppLayoutSkeleton: React.FC = () => {
                 </div>
             </div>
 
-            {/* 2. Main Right Column Skeleton */}
+
             <div className="flex-1 flex flex-col min-w-0 h-full max-h-full overflow-hidden">
-                {/* Header Skeleton */}
+
                 <div className="h-14 border-b border-zinc-800/60 flex items-center px-6 justify-between shrink-0">
                     <div className="h-4 w-32 bg-zinc-800 rounded" />
                     <div className="flex space-x-3">
@@ -36,7 +36,7 @@ export const AppLayoutSkeleton: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Workspace Content Skeleton */}
+
                 <div className="flex-1 flex min-h-0 h-full overflow-hidden relative">
                     <main className="flex-1 flex flex-col bg-[#0a0b0e] p-6 justify-end space-y-4">
                         <div className="flex items-start space-x-3">

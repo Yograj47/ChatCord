@@ -4,7 +4,7 @@ import { LogoMark } from '../../components/common/LogoMark';
 export const AuthLayoutSkeleton: React.FC = () => {
     return (
         <div className="min-h-screen w-full bg-[#090a0f] text-zinc-100 flex flex-col justify-between items-center p-6 md:p-10 font-sans antialiased animate-pulse">
-            {/* Brand Header */}
+
             <header className="w-full max-w-5xl flex justify-between items-center">
                 <div className="flex items-center space-x-3">
                     <div className="p-1 rounded-xl bg-indigo-600/20 border border-indigo-500/30">
@@ -19,7 +19,7 @@ export const AuthLayoutSkeleton: React.FC = () => {
                 </div>
             </header>
 
-            {/* Main Authentication Content Slot Skeleton */}
+
             <main className="w-full max-w-105 my-auto py-8">
                 <div className="relative bg-[#111319] border border-zinc-800/80 rounded-2xl p-8 shadow-2xl overflow-hidden space-y-6">
                     <div className="space-y-2">
@@ -34,7 +34,7 @@ export const AuthLayoutSkeleton: React.FC = () => {
                 </div>
             </main>
 
-            {/* Footer */}
+
             <footer className="w-full max-w-5xl text-center py-2 text-xs text-zinc-600 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-zinc-900/80 pt-6">
                 <div className="h-3 w-48 bg-zinc-800/60 rounded" />
                 <div className="flex space-x-5">

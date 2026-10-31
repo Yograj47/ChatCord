@@ -15,6 +15,11 @@ import {
 
 @Injectable()
 export class UsersService {
+  constructor(
+    @InjectModel(User.name)
+    private readonly userModel: Model<UserDocument>,
+  ) {}
+
   async publicProfiles(ids: string[]) {
     return this.userModel
       .find({ _id: { $in: ids } })
@@ -22,10 +27,6 @@ export class UsersService {
       .lean()
       .exec();
   }
-  constructor(
-    @InjectModel(User.name)
-    private readonly userModel: Model<UserDocument>,
-  ) {}
 
   async findByGoogleId(providerId: string): Promise<UserDocument | null> {
     return this.userModel
@@ -54,7 +55,7 @@ export class UsersService {
   }): Promise<UserDocument> {
     const user = new this.userModel({
       type: UserType.REGISTERED,
-      // username left undefined to trigger onboarding!
+      // Leave the username unset so new users complete onboarding.
       displayName: data.displayName,
       email: data.email,
       identity: {
@@ -161,14 +162,4 @@ export class UsersService {
       avatar: user.avatar,
     }));
   }
-
-  // private generateUsername(email: string): string {
-  //   const base =
-  //     email
-  //       .split('@')[0]
-  //       .toLowerCase()
-  //       .replace(/[^a-z0-9_]/g, '') || 'user';
-
-  //   return `${base}_${randomBytes(3).toString('hex')}`;
-  // }
 }

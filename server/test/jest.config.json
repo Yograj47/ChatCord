@@ -1,0 +1,38 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "..",
+  "transform": {
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "moduleResolution": "node",
+          "resolvePackageJsonExports": false,
+          "allowJs": true
+        }
+      }
+    ]
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!@nestjs)"
+  ],
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/src/$1"
+  },
+  "collectCoverageFrom": [
+    "src/**/*.controller.ts"
+  ],
+  "coverageDirectory": "<rootDir>/coverage",
+  "testEnvironment": "node",
+  "roots": [
+    "<rootDir>/test/controllers"
+  ],
+  "testMatch": [
+    "**/*.controller.spec.ts"
+  ]
+}

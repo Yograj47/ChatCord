@@ -20,7 +20,7 @@ export const HeaderBranding: React.FC<HeaderBrandingProps> = ({
         <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
       </div>
 
-      {/* WS Latency Status Pill */}
+
       <div className="hidden sm:flex items-center space-x-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-2 py-0.5 rounded-full">
         <span
           className={`h-1.5 w-1.5 rounded-full ${

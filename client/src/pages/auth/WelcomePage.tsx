@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserCheck, ArrowRight } from 'lucide-react';
 import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton';
 import { useAuth } from '../../hooks/useAuth';
-import { showSuccess, showError } from '../../lib/toast'; // <-- Import ChatCord toast helpers
+import { showSuccess, showError } from '../../lib/toast';
 
 export const WelcomePage: React.FC = () => {
     const [isGuestLoading, setIsGuestLoading] = useState(false);
@@ -19,11 +19,11 @@ export const WelcomePage: React.FC = () => {
         setIsGuestLoading(true);
         try {
             await loginAsGuest();
-            showSuccess('Guest session initialized successfully!'); // <-- Success toast
+            showSuccess('Guest session initialized successfully!');
             navigate('/app');
         } catch (err) {
             console.error('Guest login failed:', err);
-            showError('Failed to create guest session. Please try again.'); // <-- Error toast
+            showError('Failed to create guest session. Please try again.');
         } finally {
             setIsGuestLoading(false);
         }
@@ -41,7 +41,7 @@ export const WelcomePage: React.FC = () => {
             </div>
 
             <div className="space-y-4 pt-2">
-                {/* Google Sign In Option */}
+
                 <GoogleLoginButton onClick={handleGoogleSignIn} />
 
                 <div className="relative flex py-2 items-center">
@@ -50,7 +50,7 @@ export const WelcomePage: React.FC = () => {
                     <div className="grow border-t border-zinc-800"></div>
                 </div>
 
-                {/* Guest Sign In Button */}
+
                 <button
                     onClick={handleGuestSignIn}
                     disabled={isGuestLoading}

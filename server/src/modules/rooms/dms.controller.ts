@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { IsMongoId } from 'class-validator';
 import { ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -8,10 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserType } from '../users/schemas/user.schema';
 import { RoomsService } from './rooms.service';
 
-export class CreateDmDto {
-  @IsMongoId()
-  userId!: string;
-}
+import { CreateDmDto } from './dto/create-dm.dto';
 
 @ApiTags('dms')
 @Controller('dms')

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Zod validation for username onboarding
+
 export const onboardingSchema = z.object({
     username: z
         .string()
@@ -12,7 +12,7 @@ export const onboardingSchema = z.object({
 
 export type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
-// Zod validation for Guest Login
+
 export const guestLoginSchema = z.object({
     displayName: z.string().min(2, 'Display name must be at least 2 characters').max(30).optional(),
 });

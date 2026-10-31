@@ -6,7 +6,7 @@ import { Toaster } from 'sonner';
 export const App: React.FC = () => {
   const theme = useThemeStore((state) => state.theme);
 
-  // Sync theme with dark class on mount and theme changes
+
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');

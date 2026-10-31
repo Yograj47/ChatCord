@@ -6,7 +6,8 @@ import { Loader2, ArrowRight, AtSign, User as UserIcon } from 'lucide-react';
 import { onboardingSchema, type OnboardingFormData } from '../../types/auth';
 import { useAuth } from '#hooks/useAuth';
 import { showSuccess, showError } from '../../lib/toast'; 
-import axios from 'axios';
+import { isAxiosError } from 'axios';
+import { getApiErrorMessage } from '../../lib/api-error';
 
 export const UsernameOnboardingPage: React.FC = () => {
     const navigate = useNavigate();
@@ -31,19 +32,10 @@ export const UsernameOnboardingPage: React.FC = () => {
             showSuccess('Profile configured successfully! Welcome to ChatCord.'); 
             navigate('/app', { replace: true });
         } catch (err: unknown) {
-            let message = 'Failed to set username. It may already be taken.';
-
-            if (axios.isAxiosError<{ message?: string | string[] }>(err)) {
-                const apiMessage = err.response?.data?.message;
-
-                if (Array.isArray(apiMessage)) {
-                    message = apiMessage.join(', ');
-                } else if (apiMessage) {
-                    message = apiMessage;
-                }
-            } else if (err instanceof Error) {
-                message = err.message;
-            }
+            const fallback = err instanceof Error && !isAxiosError(err)
+                ? err.message
+                : 'Failed to set username. It may already be taken.';
+            const message = getApiErrorMessage(err, fallback);
 
             setError('username', { type: 'server', message });
             showError(message);
@@ -52,7 +44,7 @@ export const UsernameOnboardingPage: React.FC = () => {
 
     return (
         <div className="w-full text-left">
-            {/* Header */}
+
             <div className="space-y-1.5 mb-6">
                 <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
                     Choose your username
@@ -62,9 +54,9 @@ export const UsernameOnboardingPage: React.FC = () => {
                 </p>
             </div>
 
-            {/* Form */}
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Username Input */}
+
                 <div className="space-y-1.5">
                     <label className="text-[11px] font-medium text-zinc-300 uppercase tracking-wider">
                         Username
@@ -85,7 +77,7 @@ export const UsernameOnboardingPage: React.FC = () => {
                     )}
                 </div>
 
-                {/* Display Name Input */}
+
                 <div className="space-y-1.5">
                     <label className="text-[11px] font-medium text-zinc-300 uppercase tracking-wider">
                         Display Name <span className="text-zinc-600 lowercase">(optional)</span>
@@ -106,7 +98,7 @@ export const UsernameOnboardingPage: React.FC = () => {
                     )}
                 </div>
 
-                {/* Submit Button */}
+
                 <button
                     type="submit"
                     disabled={isCompleteOnboardingPending}

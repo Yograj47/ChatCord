@@ -18,7 +18,7 @@ export const Header: React.FC = () => {
             ref={headerRef}
             className="h-12 w-full bg-[#0d0f14] border-b border-zinc-800/80 px-3 md:px-4 flex items-center justify-between shrink-0 z-40 select-none overflow-hidden"
         >
-            {/* Left Action: Mobile Back Button (Return to Sidebar List) */}
+
             <div className="flex items-center min-w-0">
                 <button
                     type="button"
@@ -30,10 +30,10 @@ export const Header: React.FC = () => {
                 </button>
             </div>
 
-            {/* Middle Spacer */}
+
             <div className="flex-1 min-w-0" />
 
-            {/* Right Section: Search Trigger + Members + Actions */}
+
             <div className="flex items-center space-x-2 md:space-x-3 shrink-0">
                 <button
                     type="button"

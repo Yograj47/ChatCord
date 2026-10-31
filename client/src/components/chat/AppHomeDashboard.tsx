@@ -10,7 +10,7 @@ export const AppHomeDashboard: React.FC = () => {
     return (
         <div className="flex-1 flex flex-col items-center justify-center bg-[#0b0c10] p-8 text-center select-none overflow-y-auto">
             <div className="max-w-md w-full space-y-6">
-                {/* Branding Icon */}
+
                 <div className="mx-auto w-14 h-14 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-xl shadow-indigo-600/5">
                     <MessageSquare className="h-7 w-7" />
                 </div>
@@ -24,7 +24,7 @@ export const AppHomeDashboard: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Quick Action Cards */}
+
                 <div className="grid grid-cols-2 gap-3 pt-2">
                     <button
                         onClick={() => setCreateRoomOpen(true)}

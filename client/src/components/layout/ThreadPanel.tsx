@@ -15,7 +15,7 @@ export const ThreadPanel: React.FC = () => {
             </div>
 
             <div className="flex-1 p-4 space-y-4 overflow-y-auto text-xs">
-                {/* Thread Original Message Context */}
+
                 <div className="p-3 bg-[#13161d] rounded-lg border border-zinc-800/80 space-y-1">
                     <div className="flex items-center justify-between">
                         <span className="font-semibold text-zinc-200">Julian Reyes</span>
@@ -26,7 +26,7 @@ export const ThreadPanel: React.FC = () => {
                     </p>
                 </div>
 
-                {/* Thread Replies */}
+
                 <div className="space-y-3 pt-2">
                     <div className="space-y-1">
                         <div className="flex items-center justify-between">
