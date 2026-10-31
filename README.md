@@ -10,11 +10,11 @@ The goal is to rebuild ChatCord into a production-oriented application demonstra
 
 🚧 **In Development**
 
-Current milestone: **Social & Invitations — complete**
+Current milestone: **Messaging Integration — complete**
 
-Current task: **Broaden messaging features, frontend coverage, and deployment readiness**
+Current task: **Messaging integration verified and accepted; next: online presence and typing indicators**
 
-Friendship, friend-only DM, and room-invitation workflows are implemented and verified against the running backend, live MongoDB, and Redis. Rooms expose member profiles, join/leave controls, role management, removal, and visibility/text permissions. All 126 backend tests pass, including HTTP authorization/validation coverage. The Social & Invitations milestone is complete. Advanced messaging features, broader application testing, and deployment remain in progress.
+Social & Invitations is complete. Message editing, confirmed deletion, cursor pagination, quoted replies/replies view, reactions, and room-scoped search now use dedicated backend contracts, client APIs, types, hooks, and components. Real MongoDB/Redis/Socket.IO and browser checks passed. All 129 backend tests pass. Broader application testing, presence/typing integration, and deployment remain in progress.
 
 ---
 
@@ -116,12 +116,12 @@ Friendship, friend-only DM, and room-invitation workflows are implemented and ve
 - [x] Create message
 - [x] Persist messages
 - [x] Retrieve message history
-- [ ] Message pagination
+- [x] Message pagination
 - [x] Edit message
 - [x] Delete message
-- [ ] Message replies
-- [ ] Message reactions
-- [ ] Message search
+- [x] Message replies
+- [x] Message reactions
+- [x] Message search
 
 ## Real-Time
 
@@ -226,12 +226,14 @@ Use the room-header member count for [Members and permissions](docs/room-permiss
 
 - [x] Integrate message history API
 - [x] Integrate message creation
-- [ ] Integrate message editing
-- [ ] Integrate message deletion
-- [ ] Integrate message pagination
-- [ ] Integrate message replies
-- [ ] Integrate message reactions
-- [ ] Integrate message search
+- [x] Integrate message editing
+- [x] Integrate message deletion
+- [x] Integrate message pagination
+- [x] Integrate message replies
+- [x] Integrate message reactions
+- [x] Integrate message search
+
+See [messaging integration](docs/messaging-integration.md) for the API/type/hook/component structure, authorization rules, cursor/search contracts, realtime synchronization, and repeatable live verification. Deletion retains a placeholder for linked replies; search is scoped to the current conversation.
 
 ## Real-Time Integration
 
@@ -245,7 +247,9 @@ Use the room-header member count for [Members and permissions](docs/room-permiss
 
 ## Testing
 
-Latest validation (2026-10-31): all 126 backend tests across 14 suites passed; TypeScript and changed-file lint passed. The new HTTP tests exercise real Nest controllers, session/role guards, and validation with stubbed persistence services. Social HTTP checks passed against MongoDB, including concurrent acceptance and recipient authorization. The actual AppModule/MongoDB/Redis Socket.IO checks passed again. Real-browser checks completed friendship and invitation flows; see [live verification](docs/realtime-verification.md). Production builds passed in the preceding implementation validation; this milestone closure changes tests, the opt-in harness, and documentation.
+Messaging validation (2026-10-31): 129 tests across 14 suites passed. Backend/frontend production builds, TypeScript, and changed-file lint passed. Live message API and Socket.IO tests passed author-only edits/deletion, cursor boundaries, search scoping, reply persistence, idempotent reactions, and deletion placeholders. Browser checks passed sending, searching, editing, reaction changes, both reply workflows, reload persistence, confirmed deletion, deleted-parent quotes, and older-page loading. User manual testing passed. UI and folder-structure cleanup are deferred.
+
+Social milestone validation (2026-10-31): all 126 backend tests across 14 suites passed at milestone closure. The HTTP tests exercise real Nest controllers, session/role guards, and validation with stubbed persistence services. Social HTTP checks passed against MongoDB, including concurrent acceptance and recipient authorization. The actual AppModule/MongoDB/Redis Socket.IO checks passed again. Real-browser checks completed friendship and invitation flows; see [live verification](docs/realtime-verification.md).
 
 Friends frontend validation: synthetic checks on 2026-10-30 covered validation, empty/error states, and relationship controls. Live browser checks on 2026-10-31 passed normalized username search, send/cancel, accept/decline, confirmed removal, refreshed counts, and guest guidance using isolated accounts against the running backend. No real users were contacted.
 
@@ -259,7 +263,7 @@ Repeat the search check from `server` with `npx ts-node --transpile-only -r tsco
 
 Repeat the social check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts`. Previously deferred username expectations and outdated room mocks have been updated for onboarding and atomic membership operations; the full unit suite now passes.
 
-- [x] Backend test suite (126 passing, including social HTTP module tests)
+- [x] Backend test suite (129 passing, including social HTTP module and messaging tests)
 - [ ] API integration tests
 - [x] Live DM Socket.IO integration checks (MongoDB and Redis)
 - [ ] Frontend tests

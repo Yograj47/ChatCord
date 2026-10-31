@@ -236,9 +236,10 @@ async function main() {
         },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
+      const text = await response.text();
       return {
         status: response.status,
-        body: (await response.json()) as unknown,
+        body: text ? (JSON.parse(text) as unknown) : undefined,
       };
     };
 
@@ -444,6 +445,176 @@ async function main() {
       },
     );
     assert((await acknowledge(sam, 'join-room', { roomId: dmId })).ok);
+    if (process.argv.includes('--messaging')) {
+      stage = 'messaging integration';
+      assert((await acknowledge(sam, 'join-room', { roomId: groupId })).ok);
+      const createdEvent = event<Packet>(sam, 'new-message');
+      const created = await http(`/rooms/${groupId}/messages`, 0, 'POST', {
+        content: 'Messaging integration parent',
+      });
+      assert.equal(created.status, 201);
+      const parentId = (created.body as Packet)._id;
+      assert.equal((await createdEvent)._id, parentId);
+      const editedEvent = event<Packet>(sam, 'message-updated');
+      assert.equal(
+        (
+          await http(`/rooms/${groupId}/messages/${parentId}`, 1, 'PATCH', {
+            content: 'Unauthorized',
+          })
+        ).status,
+        403,
+      );
+      assert.equal(
+        (
+          await http(`/rooms/${groupId}/messages/${parentId}`, 0, 'PATCH', {
+            content: '  Messaging integration edited  ',
+          })
+        ).status,
+        200,
+      );
+      assert.equal((await editedEvent).content, 'Messaging integration edited');
+      assert.equal(
+        (
+          await http(`/rooms/${groupId}/messages/${parentId}`, 0, 'PATCH', {
+            content: '  ',
+          })
+        ).status,
+        400,
+      );
+      const reply = await http(`/rooms/${groupId}/messages`, 1, 'POST', {
+        content: 'Persisted reply',
+        replyTo: parentId,
+      });
+      assert.equal(reply.status, 201);
+      const replyId = (reply.body as Packet)._id;
+      const replies = await http(
+        `/rooms/${groupId}/messages/page?replyTo=${parentId}`,
+        1,
+      );
+      assert.equal((replies.body as { items: Packet[] }).items[0]._id, replyId);
+      await Promise.all(
+        [0, 1].map(() =>
+          http(`/rooms/${groupId}/messages/${parentId}/reactions`, 1, 'POST', {
+            emoji: '👍',
+          }).then((result) => assert.equal(result.status, 201)),
+        ),
+      );
+      const reacted = await http(`/rooms/${groupId}/messages/${parentId}`, 0);
+      assert.equal(
+        (reacted.body as { reactions: unknown[] }).reactions.length,
+        1,
+      );
+      await http(
+        `/rooms/${groupId}/messages/${parentId}/reactions`,
+        0,
+        'DELETE',
+        { emoji: '👍' },
+      );
+      const unchanged = await http(`/rooms/${groupId}/messages/${parentId}`, 0);
+      assert.equal(
+        (unchanged.body as { reactions: unknown[] }).reactions.length,
+        1,
+      );
+      await http(
+        `/rooms/${groupId}/messages/${parentId}/reactions`,
+        1,
+        'DELETE',
+        { emoji: '👍' },
+      );
+      assert.equal(
+        (
+          await http(
+            `/rooms/${groupId}/messages/${parentId}/reactions`,
+            1,
+            'POST',
+            { emoji: 'invalid' },
+          )
+        ).status,
+        400,
+      );
+      for (let i = 0; i < 34; i++)
+        await http(`/rooms/${groupId}/messages`, 0, 'POST', {
+          content: `Pagination fixture ${i}`,
+        });
+      const first = await http(`/rooms/${groupId}/messages/page?limit=30`, 0);
+      const firstPage = first.body as { items: Packet[]; nextCursor: string };
+      assert.equal(firstPage.items.length, 30);
+      assert(firstPage.nextCursor);
+      const second = await http(
+        `/rooms/${groupId}/messages/page?limit=30&before=${firstPage.nextCursor}`,
+        0,
+      );
+      const secondPage = second.body as {
+        items: Packet[];
+        nextCursor: string | null;
+      };
+      assert.equal(secondPage.items.length, 6);
+      assert.equal(secondPage.nextCursor, null);
+      assert.equal(
+        new Set(
+          [...firstPage.items, ...secondPage.items].map((item) => item._id),
+        ).size,
+        36,
+      );
+      const search = await http(
+        `/rooms/${groupId}/messages/page?q=integration`,
+        1,
+      );
+      assert.equal((search.body as { items: Packet[] }).items.length, 1);
+      assert.equal(
+        (await http(`/rooms/${dmId}/messages/page?q=Transport`, 2)).status,
+        403,
+      );
+      assert.equal(
+        (await http(`/rooms/${groupId}/messages/page?limit=101`, 0)).status,
+        400,
+      );
+      assert.equal(
+        (await http(`/rooms/${groupId}/messages/page?before=bad`, 0)).status,
+        400,
+      );
+      const deletedEvent = event<Packet>(sam, 'message-updated');
+      assert.equal(
+        (await http(`/rooms/${groupId}/messages/${parentId}`, 1, 'DELETE'))
+          .status,
+        403,
+      );
+      assert.equal(
+        (await http(`/rooms/${groupId}/messages/${parentId}`, 0, 'DELETE'))
+          .status,
+        200,
+      );
+      assert.equal((await deletedEvent).content, '[Message deleted]');
+      assert.equal(
+        (
+          await http(`/rooms/${groupId}/messages/${parentId}`, 0, 'PATCH', {
+            content: 'Resurrect',
+          })
+        ).status,
+        404,
+      );
+      assert.equal(
+        (
+          await http(`/rooms/${groupId}/messages`, 1, 'POST', {
+            content: 'Deleted parent reply',
+            replyTo: parentId,
+          })
+        ).status,
+        404,
+      );
+      assert.equal(
+        (await http(`/rooms/${groupId}/messages/${replyId}`, 1)).status,
+        200,
+      );
+      const afterDelete = await http(
+        `/rooms/${groupId}/messages/page?q=integration`,
+        0,
+      );
+      assert.equal((afterDelete.body as { items: Packet[] }).items.length, 0);
+      console.log(
+        'PASS: message HTTP/realtime creation, author-only editing/deletion, cursor pagination, search, replies, atomic reactions and deletion tombstones',
+      );
+    }
     if (process.argv.includes('--serve')) {
       if (process.argv.includes('--social')) {
         const invitationRoom = await roomService.createRoom(ids[0].toString(), {

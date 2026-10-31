@@ -15,31 +15,18 @@ import { RoomMembersDialog } from "../rooms/RoomMembersDialog";
 import type { UpdateRoomDto } from "../../types/room";
 import { useAuth } from "../../hooks/useAuth";
 import { roomsApi } from "../../api/room.api";
-import { api } from "../../lib/api";
-
-interface StoredMessage {
-  _id: string;
-  roomId: string;
-  senderId: string;
-  content: string;
-  createdAt: string;
-}
-interface Acknowledgement {
-  ok: boolean;
-  error?: string;
-  data?: StoredMessage;
-}
-function mergeMessages(existing: StoredMessage[], incoming: StoredMessage[]) {
-  return [
-    ...new Map(
-      [...existing, ...incoming].map((message) => [message._id, message]),
-    ).values(),
-  ].sort(
-    (a, b) =>
-      Date.parse(a.createdAt) - Date.parse(b.createdAt) ||
-      a._id.localeCompare(b._id),
-  );
-}
+import type {
+  StoredMessage,
+  MessageAcknowledgement as Acknowledgement,
+} from "../../types/message";
+import {
+  MESSAGE_QUERY_KEYS,
+  useMessages,
+  useMessageMutations,
+} from "../../hooks/useMessages";
+import { MessageDialog } from "./MessageDialog";
+import { MessageReplies } from "./MessageReplies";
+import { MessageSearch } from "./MessageSearch";
 
 export function ChatContainer() {
   const { roomId, dmId } = useParams<{ roomId?: string; dmId?: string }>();
@@ -58,6 +45,7 @@ function ChatConversation({
   requestedRoomId: string | null;
 }) {
   const navigate = useNavigate();
+  const { messageId: routeReplyId } = useParams<{ messageId?: string }>();
   const queryClient = useQueryClient();
   const { sessionData } = useAuth();
   const { isConnected, socketId, error: socketError } = useSocket();
@@ -77,11 +65,16 @@ function ChatConversation({
     clearReplyToMessage,
     resetComposer,
   } = useComposerStore();
-  const [messages, setMessages] = useState<StoredMessage[]>([]);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [messageDialog, setMessageDialog] = useState<{
+    message: StoredMessage;
+    mode: "edit" | "delete";
+  } | null>(null);
+  const [replyMessageId, setReplyMessageId] = useState<string | null>(null);
   const [membersOpen, setMembersOpen] = useState(false);
   const [joined, setJoined] = useState("");
   const [messageError, setMessageError] = useState<string | null>(null);
-  const [historyError, setHistoryError] = useState(false);
   const isMember = Boolean(
     !roomError &&
     room?.members.some((member) => member.userId === sessionData?.id),
@@ -94,6 +87,21 @@ function ChatConversation({
         member.userId === sessionData?.id &&
         ["owner", "moderator"].includes(member.role),
     );
+  const messageQuery = useMessages(
+    activeRoomId ?? "",
+    sessionData?.id ?? "",
+    isMember,
+    debouncedSearch,
+  );
+  const { messages } = messageQuery;
+  const messageActions = useMessageMutations(
+    activeRoomId ?? "",
+    sessionData?.id ?? "",
+  );
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   const members = useQuery({
     queryKey: ["room-members", activeRoomId, sessionData?.id],
     queryFn: () => roomsApi.getMembers(activeRoomId!),
@@ -115,28 +123,14 @@ function ChatConversation({
 
   useEffect(() => {
     if (!activeRoomId || !isMember) return;
-    const controller = new AbortController();
-    api
-      .get<StoredMessage[]>(`/rooms/${activeRoomId}/messages`, {
-        signal: controller.signal,
-      })
-      .then(({ data }) => {
-        setMessages((existing) => mergeMessages(existing, data));
-        setHistoryError(false);
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setHistoryError(true);
-      });
-    return () => controller.abort();
-  }, [activeRoomId, isMember, joined]);
+    void queryClient.invalidateQueries({
+      queryKey: MESSAGE_QUERY_KEYS.room(activeRoomId, sessionData?.id ?? ""),
+    });
+  }, [activeRoomId, isMember, joined, queryClient, sessionData?.id]);
 
   useEffect(() => {
     if (!activeRoomId || !isMember || !isConnected || !connectionKey) return;
     let active = true;
-    const handleMessage = (message: StoredMessage) => {
-      if (message.roomId === activeRoomId)
-        setMessages((existing) => mergeMessages(existing, [message]));
-    };
     const handleChanged = ({ roomId }: { roomId: string }) => {
       if (roomId !== activeRoomId) return;
       void queryClient.invalidateQueries({
@@ -157,7 +151,6 @@ function ChatConversation({
       void queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.lists() });
       navigate("/app");
     };
-    socket.on("new-message", handleMessage);
     socket.on("room-members-changed", handleChanged);
     socket.on("room-access-revoked", handleRevoked);
     socket
@@ -181,7 +174,6 @@ function ChatConversation({
     return () => {
       active = false;
       socket.emit("leave-room", { roomId: activeRoomId });
-      socket.off("new-message", handleMessage);
       socket.off("room-members-changed", handleChanged);
       socket.off("room-access-revoked", handleRevoked);
     };
@@ -195,32 +187,22 @@ function ChatConversation({
     setActiveRoomId,
   ]);
 
-  const handleSend = (content: string): Promise<boolean> => {
-    if (!ready || !activeRoomId) return Promise.resolve(false);
+  const handleSend = async (content: string): Promise<boolean> => {
+    if (!ready || !activeRoomId) return false;
     setMessageError(null);
-    return new Promise((resolve) => {
-      socket
-        .timeout(10000)
-        .emit(
-          "send-message",
-          { roomId: activeRoomId, content },
-          (error: Error | null, response?: Acknowledgement) => {
-            if (error || !response?.ok || !response.data) {
-              setMessageError(
-                response?.error ??
-                  "Delivery was not confirmed. Check history before retrying.",
-              );
-              resolve(false);
-              return;
-            }
-            setMessages((existing) =>
-              mergeMessages(existing, [response.data!]),
-            );
-            clearReplyToMessage();
-            resolve(true);
-          },
-        );
-    });
+    try {
+      await messageActions.send.mutateAsync({
+        content,
+        replyTo: activeReplyTo?.messageId,
+      });
+      clearReplyToMessage();
+      return true;
+    } catch (error) {
+      setMessageError(
+        error instanceof Error ? error.message : "Could not send message.",
+      );
+      return false;
+    }
   };
 
   const displayName =
@@ -240,6 +222,26 @@ function ChatConversation({
               ?.displayName ?? "Member");
       return {
         id: message._id,
+        roomId: message.roomId,
+        viewerId: sessionData?.id,
+        replyToId: message.replyTo,
+        isDeleted: Boolean(message.deletedAt),
+        isEdited: Boolean(message.editedAt),
+        reactions: [
+          ...new Set(
+            message.reactions?.map((reaction) => reaction.emoji) ?? [],
+          ),
+        ].map((emoji) => {
+          const users = (message.reactions ?? [])
+            .filter((reaction) => reaction.emoji === emoji)
+            .map((reaction) => reaction.userId);
+          return {
+            emoji,
+            count: users.length,
+            users,
+            hasReacted: users.includes(sessionData?.id ?? ""),
+          };
+        }),
         content: message.content,
         senderName: name,
         senderInitials: name.slice(0, 2).toUpperCase(),
@@ -262,13 +264,15 @@ function ChatConversation({
     await updateRoom({ roomId: activeRoomId, dto: payload });
     setEditRoomOpen(false);
   };
-  const disabledReason = isLoadingRoom ? 'Loading conversation…' : !isMember
-    ? "Join this room to send messages."
-    : !room?.capabilities.includes("text")
-      ? "Text messages are disabled in this room."
-      : !ready
-        ? (socketError ?? "Connecting to the conversation…")
-        : undefined;
+  const disabledReason = isLoadingRoom
+    ? "Loading conversation…"
+    : !isMember
+      ? "Join this room to send messages."
+      : !room?.capabilities.includes("text")
+        ? "Text messages are disabled in this room."
+        : !ready
+          ? (socketError ?? "Connecting to the conversation…")
+          : undefined;
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0c10]">
@@ -287,7 +291,14 @@ function ChatConversation({
           : (socketError ??
             (isMember ? "Connecting…" : "Read-only · join to participate"))}
       </div>
-      {(messageError || historyError || roomError) && (
+      {isMember && (
+        <MessageSearch
+          value={search}
+          onChange={setSearch}
+          searching={messageQuery.isFetching && Boolean(search)}
+        />
+      )}
+      {(messageError || messageQuery.isError || roomError) && (
         <div role="alert" className="px-4 py-2 text-sm text-rose-300">
           {roomError
             ? "This conversation is unavailable or you do not have access."
@@ -296,8 +307,60 @@ function ChatConversation({
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {messageQuery.isPending && isMember && (
+          <p role="status" className="p-4 text-xs text-zinc-400">
+            Loading messages…
+          </p>
+        )}
+        {messageQuery.isError && (
+          <button
+            className="p-4 text-indigo-300"
+            onClick={() => void messageQuery.refetch()}
+          >
+            Retry history
+          </button>
+        )}
+        {messageQuery.hasNextPage && (
+          <button
+            className="w-full p-3 text-xs text-indigo-300"
+            disabled={messageQuery.isFetchingNextPage}
+            onClick={() => void messageQuery.fetchNextPage()}
+          >
+            {messageQuery.isFetchingNextPage
+              ? "Loading…"
+              : "Load older messages"}
+          </button>
+        )}
+        {!messageQuery.isPending &&
+          !messageQuery.isError &&
+          isMember &&
+          messages.length === 0 && (
+            <p className="p-4 text-xs text-zinc-400">
+              {debouncedSearch ? "No matching messages." : "No messages yet."}
+            </p>
+          )}
         <MessageList
           messages={messages.map(toMessage)}
+          onEditMessage={(id) => {
+            const message = messages.find((item) => item._id === id);
+            if (message) setMessageDialog({ message, mode: "edit" });
+          }}
+          onDeleteMessage={(id) => {
+            const message = messages.find((item) => item._id === id);
+            if (message) setMessageDialog({ message, mode: "delete" });
+          }}
+          onOpenReplies={setReplyMessageId}
+          onReact={(id, emoji) => {
+            const message = messages.find((item) => item._id === id);
+            const add = !message?.reactions?.some(
+              (reaction) =>
+                reaction.emoji === emoji && reaction.userId === sessionData?.id,
+            );
+            if (!messageActions.react.isPending)
+              void messageActions.react
+                .mutateAsync({ id, emoji, add })
+                .catch(() => {});
+          }}
           onReplyInInput={(message) =>
             setReplyToMessage({
               messageId: message.id,
@@ -323,6 +386,37 @@ function ChatConversation({
         }
         onCancelReply={clearReplyToMessage}
       />
+      {messageDialog && activeRoomId && sessionData?.id && (
+        <MessageDialog
+          key={messageDialog.message._id}
+          {...messageDialog}
+          roomId={activeRoomId}
+          userId={sessionData.id}
+          onClose={() => setMessageDialog(null)}
+        />
+      )}
+      {(replyMessageId || routeReplyId) &&
+        activeRoomId &&
+        sessionData?.id &&
+        isMember && (
+          <MessageReplies
+            key={replyMessageId ?? routeReplyId}
+            roomId={activeRoomId}
+            userId={sessionData.id}
+            messageId={(replyMessageId ?? routeReplyId)!}
+            canSend={ready && Boolean(room?.capabilities.includes("text"))}
+            onClose={() => {
+              setReplyMessageId(null);
+              if (routeReplyId) navigate(`/app/rooms/${activeRoomId}`);
+            }}
+            nameFor={(id) =>
+              id === sessionData.id
+                ? "You"
+                : (members.data?.find((member) => member.id === id)
+                    ?.displayName ?? "Member")
+            }
+          />
+        )}
       {room && sessionData?.id && membersOpen && (
         <RoomMembersDialog
           room={room}
