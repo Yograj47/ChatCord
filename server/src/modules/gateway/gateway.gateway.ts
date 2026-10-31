@@ -3,16 +3,29 @@ import {
   MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  OnGatewayInit,
   SubscribeMessage,
   WebSocketGateway,
   WsException,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
+import type { Namespace } from 'socket.io';
 import { RoomsService } from '../rooms/rooms.service';
 import { MessagesService } from '../messages/messages.service';
 import { SocketAuthService } from './socket-auth.service';
 import { RedisService } from '../redis/redis.service';
 import { RateLimitService } from '../redis/rate-limit.service';
+import {
+  UseFilters,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import { RoomEventsService } from '../rooms/room-events.service';
+import { SocketSessionGuard } from './socket-session.guard';
+import { GatewayExceptionFilter } from './gateway-exception.filter';
+import { SessionType } from '../auth/schemas/session.schema';
+import { RoomEventDto, SendMessageEventDto } from './dto/room-event.dto';
 
 interface GatewaySocketData {
   userId?: string;
@@ -29,6 +42,8 @@ interface GatewayServerToClientEvents {
   'new-message': (data: unknown) => void;
   'user-typing': (data: { roomId: string; userId: string }) => void;
   'user-stopped-typing': (data: { roomId: string; userId: string }) => void;
+  'room-access-revoked': (data: { roomId: string }) => void;
+  'room-members-changed': (data: { roomId: string }) => void;
 }
 
 type GatewaySocket = Socket<
@@ -45,21 +60,60 @@ type GatewaySocket = Socket<
     credentials: true,
   },
 })
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+    exceptionFactory: () => new WsException('Invalid event payload.'),
+  }),
+)
+@UseGuards(SocketSessionGuard)
+@UseFilters(GatewayExceptionFilter)
 export class GatewayGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
+  private namespace!: Namespace;
+  afterInit(namespace: Namespace) {
+    this.namespace = namespace;
+    namespace.use((client, next) => {
+      void this.socketAuthService
+        .authenticate(client)
+        .then((session) => {
+          if (session.type !== SessionType.REGISTERED || !session.userId) {
+            next(new Error('Registered user authentication required.'));
+            return;
+          }
+          const data = client.data as GatewaySocketData;
+          data.userId = session.userId.toString();
+          data.sessionId = session._id.toString();
+          data.sessionType = session.type;
+          next();
+        })
+        .catch(() => next(new Error('Authentication failed.')));
+    });
+    this.roomEvents.bind((roomId, removedUserId) => {
+      if (removedUserId) {
+        namespace.in(`user:${removedUserId}`).socketsLeave(roomId);
+        namespace
+          .to(`user:${removedUserId}`)
+          .emit('room-access-revoked', { roomId });
+      }
+      namespace.to(roomId).emit('room-members-changed', { roomId });
+    });
+  }
   constructor(
     private readonly socketAuthService: SocketAuthService,
     private readonly roomsService: RoomsService,
     private readonly messagesService: MessagesService,
     private readonly redisService: RedisService,
     private readonly rateLimitService: RateLimitService,
+    private readonly roomEvents: RoomEventsService,
   ) {}
 
   async handleConnection(client: GatewaySocket): Promise<void> {
     try {
-      const session = await this.socketAuthService.authenticate(client);
-      const userId = session.userId?.toString();
+      const userId = client.data.userId;
 
       if (!userId) {
         client.emit('connection-error', {
@@ -69,9 +123,7 @@ export class GatewayGateway
         return;
       }
 
-      client.data.userId = userId;
-      client.data.sessionId = session._id.toString();
-      client.data.sessionType = session.type;
+      await client.join(`user:${userId}`);
 
       const sockets = await this.redisService.getPresence(userId);
 
@@ -112,7 +164,7 @@ export class GatewayGateway
   @SubscribeMessage('join-room')
   async handleJoinRoom(
     @ConnectedSocket() client: GatewaySocket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: RoomEventDto,
   ) {
     const userId = client.data.userId;
 
@@ -141,24 +193,23 @@ export class GatewayGateway
     }
 
     await client.join(data.roomId);
+    if (!(await this.roomsService.findMembership(data.roomId, userId))) {
+      await client.leave(data.roomId);
+      throw new WsException('You are not a member of this room.');
+    }
 
     client.to(data.roomId).emit('user-joined-room', {
       roomId: data.roomId,
       userId,
     });
 
-    return {
-      event: 'room-joined',
-      data: {
-        roomId: data.roomId,
-      },
-    };
+    return { ok: true, roomId: data.roomId };
   }
 
   @SubscribeMessage('leave-room')
   async handleLeaveRoom(
     @ConnectedSocket() client: GatewaySocket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: RoomEventDto,
   ) {
     const userId = client.data.userId;
 
@@ -177,15 +228,6 @@ export class GatewayGateway
       throw new WsException('Too many room leave requests. Please slow down.');
     }
 
-    const membership = await this.roomsService.findMembership(
-      data.roomId,
-      userId,
-    );
-
-    if (!membership) {
-      throw new WsException('You are not a member of this room.');
-    }
-
     await client.leave(data.roomId);
 
     client.to(data.roomId).emit('user-left-room', {
@@ -193,18 +235,13 @@ export class GatewayGateway
       userId,
     });
 
-    return {
-      event: 'room-left',
-      data: {
-        roomId: data.roomId,
-      },
-    };
+    return { ok: true, roomId: data.roomId };
   }
 
   @SubscribeMessage('send-message')
   async handleSendMessage(
     @ConnectedSocket() client: GatewaySocket,
-    @MessageBody() data: { roomId: string; content: string },
+    @MessageBody() data: SendMessageEventDto,
   ) {
     const userId = client.data.userId;
 
@@ -231,10 +268,11 @@ export class GatewayGateway
       },
     );
 
-    client.to(data.roomId).emit('new-message', message);
+    // Include the sender's other tabs, and deduplicate by message ID in clients.
+    this.namespace.to(data.roomId).emit('new-message', message);
 
     return {
-      event: 'message-sent',
+      ok: true,
       data: message,
     };
   }
@@ -242,7 +280,7 @@ export class GatewayGateway
   @SubscribeMessage('typing-start')
   async handleTypingStart(
     @ConnectedSocket() client: GatewaySocket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: RoomEventDto,
   ) {
     const userId = await this.assertRoomMembership(client, data.roomId);
 
@@ -263,7 +301,7 @@ export class GatewayGateway
   @SubscribeMessage('typing-stop')
   async handleTypingStop(
     @ConnectedSocket() client: GatewaySocket,
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: RoomEventDto,
   ) {
     const userId = await this.assertRoomMembership(client, data.roomId);
 

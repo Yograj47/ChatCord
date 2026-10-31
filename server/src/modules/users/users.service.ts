@@ -1,7 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { randomBytes } from 'node:crypto';
 import {
   AuthProvider,
   AvatarSource,
@@ -12,10 +15,17 @@ import {
 
 @Injectable()
 export class UsersService {
+  async publicProfiles(ids: string[]) {
+    return this.userModel
+      .find({ _id: { $in: ids } })
+      .select('_id username displayName avatar')
+      .lean()
+      .exec();
+  }
   constructor(
     @InjectModel(User.name)
     private readonly userModel: Model<UserDocument>,
-  ) { }
+  ) {}
 
   async findByGoogleId(providerId: string): Promise<UserDocument | null> {
     return this.userModel
@@ -53,16 +63,19 @@ export class UsersService {
       },
       avatar: data.avatarUrl
         ? {
-          url: data.avatarUrl,
-          source: AvatarSource.GOOGLE,
-        }
+            url: data.avatarUrl,
+            source: AvatarSource.GOOGLE,
+          }
         : undefined,
     });
 
     return user.save();
   }
 
-  async setUsername(userId: string, username: string): Promise<UserDocument | null> {
+  async setUsername(
+    userId: string,
+    username: string,
+  ): Promise<UserDocument | null> {
     return this.userModel
       .findByIdAndUpdate(
         userId,
@@ -70,6 +83,41 @@ export class UsersService {
         { new: true, runValidators: true },
       )
       .exec();
+  }
+
+  async completeOnboarding(
+    userId: string,
+    username: string,
+    displayName?: string,
+  ) {
+    try {
+      const user = await this.userModel
+        .findOneAndUpdate(
+          { _id: userId, type: UserType.REGISTERED },
+          {
+            $set: {
+              username: username.trim().toLowerCase(),
+              ...(displayName === undefined
+                ? {}
+                : { displayName: displayName.trim() }),
+            },
+          },
+          { new: true, runValidators: true },
+        )
+        .exec();
+      if (!user) throw new NotFoundException('Registered user not found.');
+      return user;
+    } catch (error: unknown) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 11000
+      ) {
+        throw new ConflictException('Username is already taken.');
+      }
+      throw error;
+    }
   }
 
   async updateDisplayName(
@@ -89,6 +137,29 @@ export class UsersService {
     const result = await this.userModel.deleteOne({ _id: userId }).exec();
 
     return result.deletedCount === 1;
+  }
+
+  async searchByUsername(query: string, currentUserId: string) {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    const users = await this.userModel
+      .find({
+        type: UserType.REGISTERED,
+        username: { $regex: `^${normalizedQuery}` },
+        _id: { $ne: currentUserId },
+      })
+      .select('_id username displayName avatar')
+      .sort({ username: 1 })
+      .limit(20)
+      .lean()
+      .exec();
+
+    return users.map((user) => ({
+      id: user._id.toString(),
+      username: user.username,
+      displayName: user.displayName,
+      avatar: user.avatar,
+    }));
   }
 
   // private generateUsername(email: string): string {

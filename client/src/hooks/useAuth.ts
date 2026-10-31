@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 
 import { authApi } from '../api/auth.api';
+import { socket } from '../lib/socket';
 import type {
     GuestLoginFormData,
     OnboardingFormData,
@@ -69,6 +70,7 @@ export const useAuth = () => {
     const logoutMutation = useMutation({
         mutationFn: authApi.logout,
         onSuccess: async () => {
+            socket.disconnect();
             queryClient.setQueryData<SessionResponse | null>(
                 AUTH_QUERY_KEY,
                 null,

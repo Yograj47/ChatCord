@@ -6,6 +6,16 @@ import type {
 } from '../types/room';
 import { showSuccess, showError } from '../lib/toast';
 import { roomsApi } from '../api/room.api';
+import { isAxiosError } from 'axios';
+
+function errorMessage(error: unknown, fallback: string): string {
+    if (isAxiosError<{ message?: string | string[] }>(error)) {
+        const message = error.response?.data?.message;
+        if (typeof message === 'string') return message;
+        if (Array.isArray(message)) return message.join(' ');
+    }
+    return fallback;
+}
 
 export const ROOM_QUERY_KEYS = {
     all: ['rooms'] as const,
@@ -30,8 +40,8 @@ export const useRooms = () => {
             queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.lists() });
             showSuccess(`Room "${newRoom.name || 'Chat'}" created successfully.`);
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to create room.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to create room.'));
         },
     });
 
@@ -44,8 +54,8 @@ export const useRooms = () => {
             queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.detail(updatedRoom._id) });
             showSuccess('Room updated successfully.');
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to update room.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to update room.'));
         },
     });
 
@@ -57,8 +67,8 @@ export const useRooms = () => {
             queryClient.removeQueries({ queryKey: ROOM_QUERY_KEYS.detail(roomId) });
             showSuccess('Room deleted successfully.');
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to delete room.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to delete room.'));
         },
     });
 
@@ -70,8 +80,8 @@ export const useRooms = () => {
             queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.detail(room._id) });
             showSuccess('Joined room successfully.');
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to join room.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to join room.'));
         },
     });
 
@@ -83,8 +93,8 @@ export const useRooms = () => {
             queryClient.removeQueries({ queryKey: ROOM_QUERY_KEYS.detail(roomId) });
             showSuccess('Left room.');
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to leave room.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to leave room.'));
         },
     });
 
@@ -92,12 +102,12 @@ export const useRooms = () => {
     const addMemberMutation = useMutation({
         mutationFn: ({ roomId, userId }: { roomId: string; userId: string }) =>
             roomsApi.addMember(roomId, userId),
-        onSuccess: (room) => {
-            queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.detail(room._id) });
-            showSuccess('Member added successfully.');
+        onSuccess: (invitation) => {
+            queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.detail(invitation.roomId) });
+            showSuccess('Invitation sent. The recipient must accept to join.');
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to add member.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to send invitation.'));
         },
     });
 
@@ -109,8 +119,8 @@ export const useRooms = () => {
             queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.detail(room._id) });
             showSuccess('Member removed.');
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to remove member.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to remove member.'));
         },
     });
 
@@ -129,8 +139,8 @@ export const useRooms = () => {
             queryClient.invalidateQueries({ queryKey: ROOM_QUERY_KEYS.detail(room._id) });
             showSuccess('Member role updated.');
         },
-        onError: (err: any) => {
-            showError(err?.response?.data?.message || 'Failed to update member role.');
+        onError: (err: unknown) => {
+            showError(errorMessage(err, 'Failed to update member role.'));
         },
     });
 

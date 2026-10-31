@@ -36,7 +36,11 @@ export class RedisIoAdapter extends IoAdapter {
     return server;
   }
 
-  async close(): Promise<void> {
-    await Promise.all([this.pubClient.quit(), this.subClient.quit()]);
+  override async close(server: Server): Promise<void> {
+    await super.close(server);
+    await Promise.all([
+      this.pubClient?.isOpen ? this.pubClient.quit() : Promise.resolve(),
+      this.subClient?.isOpen ? this.subClient.quit() : Promise.resolve(),
+    ]);
   }
 }

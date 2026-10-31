@@ -5,9 +5,10 @@ import { AuthModule } from '../auth/auth.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { MessagesModule } from '../messages/messages.module';
 import { RedisModule } from '../redis/redis.module';
+import { SocketSessionGuard } from './socket-session.guard';
 
 @Module({
   imports: [AuthModule, RoomsModule, MessagesModule, RedisModule],
-  providers: [GatewayGateway, SocketAuthService],
+  providers: [GatewayGateway, SocketAuthService, SocketSessionGuard],
 })
-export class GatewayModule { }
+export class GatewayModule {}

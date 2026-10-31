@@ -1,969 +1,538 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { Test, TestingModule } from '@nestjs/testing';
-import { getModelToken } from '@nestjs/mongoose';
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { HydratedDocument, Types } from 'mongoose';
-
+import { Model, Types } from 'mongoose';
 import { RoomsService } from './rooms.service';
 import {
-  Room,
-  RoomCapability,
-  RoomMemberRole,
+  RoomDocument,
   RoomType,
   RoomVisibility,
+  RoomMemberRole,
+  RoomCapability,
 } from './schemas/room.schema';
-import { CreateRoomDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
 import { RedisService } from '../redis/redis.service';
+import { UsersService } from '../users/users.service';
+import { UserType } from '../users/schemas/user.schema';
+import { FriendshipsService } from '../friendships/friendships.service';
+import { RoomEventsService } from './room-events.service';
 
-const userId = new Types.ObjectId().toString();
-const otherUserId = new Types.ObjectId().toString();
-const moderatorId = new Types.ObjectId().toString();
-const roomId = new Types.ObjectId().toString();
-
-const createMockRoom = (
-  overrides: Partial<Room> = {},
-): HydratedDocument<Room> => {
-  const room = {
-    _id: new Types.ObjectId(),
-    type: RoomType.GROUP,
-    name: 'General Chat',
-    description: 'General discussion',
-    visibility: RoomVisibility.PUBLIC,
-    capabilities: [RoomCapability.TEXT],
-    createdBy: new Types.ObjectId(userId),
-    members: [
-      {
-        userId: new Types.ObjectId(userId),
-        role: RoomMemberRole.OWNER,
-        joinedAt: new Date(),
-      },
-    ],
-    save: jest.fn(),
-    toObject: jest.fn().mockReturnValue({
-      _id: new Types.ObjectId(),
-      type: RoomType.GROUP,
-      name: 'General Chat',
-      description: 'General discussion',
-      visibility: RoomVisibility.PUBLIC,
-      capabilities: [RoomCapability.TEXT],
-      createdBy: new Types.ObjectId(userId),
-      members: [],
-      ...overrides,
-    }),
-    ...overrides,
-  };
-
-  const hydratedDoc = room as unknown as HydratedDocument<Room>;
-  hydratedDoc.save = jest
-    .fn<HydratedDocument<Room>['save']>()
-    .mockResolvedValue(hydratedDoc);
-  return hydratedDoc;
-};
 describe('RoomsService', () => {
-  let service: RoomsService;
-
-  const mockRoomModelFactory = jest.fn((...args: unknown[]) => {
-    const dto = (args[0] ?? {}) as Partial<Room>;
-    return createMockRoom(dto);
-  });
-
-  const mockRoomModel = Object.assign(mockRoomModelFactory, {
-    find: jest.fn(),
+  const anyDate: unknown = expect.any(Date);
+  const anyArray: unknown = expect.any(Array);
+  const owner = new Types.ObjectId();
+  const target = new Types.ObjectId();
+  const outsider = new Types.ObjectId();
+  const roomId = new Types.ObjectId();
+  const model = {
     findOne: jest.fn(),
-    findById: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
     findOneAndUpdate: jest.fn(),
     deleteOne: jest.fn(),
-    create: jest.fn(),
+    updateOne: jest.fn(),
+  };
+  const redis = { getCache: jest.fn(), deleteCache: jest.fn() };
+  const users = { findById: jest.fn(), publicProfiles: jest.fn() };
+  const friendships = { assertFriends: jest.fn() };
+  let service: RoomsService;
+  let room: RoomDocument;
+  const oid = owner.toHexString();
+  const tid = target.toHexString();
+  const rid = roomId.toHexString();
+  const query = (value: unknown) => ({
+    exec: jest.fn().mockResolvedValue(value),
   });
 
-  beforeEach(async () => {
-    jest.clearAllMocks();
-
-    mockRoomModel.mockImplementation((data: unknown) => {
-      const dto = (data ?? {}) as Partial<Room>;
-      return createMockRoom(dto);
-    });
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        RoomsService,
-        {
-          provide: getModelToken(Room.name),
-          useValue: mockRoomModel,
-        },
-        {
-          provide: RedisService,
-          useValue: {
-            get: jest.fn(),
-            set: jest.fn(),
-            del: jest.fn(),
-            setCache: jest.fn(),
-            getCache: jest.fn(),
-            deleteCache: jest.fn(),
-          },
-        },
+  beforeEach(() => {
+    jest.resetAllMocks();
+    room = {
+      _id: roomId,
+      slug: 'general',
+      name: 'General',
+      type: RoomType.GROUP,
+      visibility: RoomVisibility.PUBLIC,
+      members: [
+        { userId: owner, role: RoomMemberRole.OWNER, joinedAt: new Date() },
+        { userId: target, role: RoomMemberRole.MEMBER, joinedAt: new Date() },
       ],
-    }).compile();
-
-    service = module.get<RoomsService>(RoomsService);
+    } as RoomDocument;
+    model.findOne.mockReturnValue(query(room));
+    model.findOneAndUpdate.mockReturnValue(query(room));
+    model.create.mockResolvedValue(room);
+    model.deleteOne.mockReturnValue(query({ deletedCount: 1 }));
+    model.updateOne.mockReturnValue(query({ modifiedCount: 1 }));
+    users.findById.mockResolvedValue({ type: UserType.REGISTERED });
+    service = new RoomsService(
+      model as unknown as Model<RoomDocument>,
+      redis as unknown as RedisService,
+      users as unknown as UsersService,
+      friendships as unknown as FriendshipsService,
+      new RoomEventsService(),
+    );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('reads fresh documents by slug and ID, ignoring cached authorization data', async () => {
+    redis.getCache.mockReturnValue({ members: [] });
+    await service.findById(rid);
+    expect(model.findOne).toHaveBeenLastCalledWith({ _id: rid });
+    await service.findById('general');
+    expect(model.findOne).toHaveBeenLastCalledWith({ slug: 'general' });
+    expect(redis.getCache).not.toHaveBeenCalled();
   });
 
-  describe('createRoom', () => {
-    it('should create a group room successfully', async () => {
-      const dto: CreateRoomDto = {
-        type: RoomType.GROUP,
-        name: 'General Chat',
-        description: 'General discussion',
-        visibility: RoomVisibility.PUBLIC,
-        capabilities: [RoomCapability.TEXT],
-      };
+  it('rejects missing rooms and empty identifiers', async () => {
+    model.findOne.mockReturnValue(query(null));
+    await expect(service.findById(rid)).rejects.toThrow(NotFoundException);
+    await expect(service.findById('')).rejects.toThrow(BadRequestException);
+  });
 
-      const savedRoom = createMockRoom();
-      const save = jest
-        .fn<HydratedDocument<Room>['save']>()
-        .mockResolvedValue(savedRoom);
+  it('allows public reads but restricts private rooms and DMs to members', async () => {
+    await expect(
+      service.findAccessible(rid, outsider.toString()),
+    ).resolves.toBe(room);
+    room.visibility = RoomVisibility.PRIVATE;
+    await expect(
+      service.findAccessible(rid, outsider.toString()),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(service.findAccessible(rid, oid)).resolves.toBe(room);
+    room.type = RoomType.DM;
+    room.visibility = RoomVisibility.PUBLIC;
+    await expect(
+      service.findAccessible(rid, outsider.toString()),
+    ).rejects.toThrow(ForbiddenException);
+  });
 
-      mockRoomModel.mockImplementationOnce((data: unknown) => {
-        const doc = createMockRoom(data as Partial<Room>);
-        doc.save = save;
-        return doc;
-      });
-
-      const result = await service.createRoom(userId, dto);
-
-      expect(mockRoomModel).toHaveBeenCalledWith({
-        type: RoomType.GROUP,
-        name: 'General Chat',
-        description: 'General discussion',
-        visibility: RoomVisibility.PUBLIC,
-        capabilities: [RoomCapability.TEXT],
-        createdBy: expect.any(Types.ObjectId),
+  it('creates a group with trimmed fields and owner membership', async () => {
+    await service.createRoom(oid, {
+      type: RoomType.GROUP,
+      name: ' General ',
+      description: ' Topic ',
+    });
+    expect(model.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'General',
+        description: 'Topic',
+        createdBy: owner,
         members: [
           {
-            userId: expect.any(Types.ObjectId),
+            userId: owner,
             role: RoomMemberRole.OWNER,
-            joinedAt: expect.any(Date),
+            joinedAt: anyDate,
           },
         ],
-      });
+      }),
+    );
+  });
 
-      expect(save).toHaveBeenCalled();
-      expect(result).toBe(savedRoom);
-    });
+  it('rejects generic DM creation, unnamed groups and missing user IDs', async () => {
+    await expect(
+      service.createRoom(oid, { type: RoomType.DM }),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.createRoom(oid, { type: RoomType.GROUP }),
+    ).rejects.toThrow(ConflictException);
+    await expect(service.findAllForUser('')).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 
-    it('should reject DM room creation through the generic room flow', async () => {
-      const dto: CreateRoomDto = {
-        type: RoomType.DM,
-      };
+  it('queries only user rooms in recent order', async () => {
+    const chain = { sort: jest.fn().mockReturnValue(query([room])) };
+    model.find.mockReturnValue(chain);
+    await expect(service.findAllForUser(oid)).resolves.toEqual([room]);
+    expect(model.find).toHaveBeenCalledWith({ 'members.userId': owner });
+    expect(chain.sort).toHaveBeenCalledWith({ updatedAt: -1 });
+  });
 
-      await expect(service.createRoom(userId, dto)).rejects.toThrow(
+  it('resolves membership through either room identifier', async () => {
+    await expect(service.findMembership('general', oid)).resolves.toBe(
+      RoomMemberRole.OWNER,
+    );
+    await expect(
+      service.findMembership(rid, outsider.toString()),
+    ).resolves.toBeNull();
+  });
+
+  it('joins atomically and invalidates ID and slug caches', async () => {
+    await service.joinRoom('general', outsider.toString());
+    expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: roomId,
+        type: RoomType.GROUP,
+        visibility: RoomVisibility.PUBLIC,
+        'members.userId': { $ne: outsider },
+      }),
+      {
+        $push: {
+          members: {
+            userId: outsider,
+            role: RoomMemberRole.MEMBER,
+            joinedAt: anyDate,
+          },
+        },
+      },
+      expect.any(Object),
+    );
+    expect(redis.deleteCache).toHaveBeenCalledWith(`cache:room:${rid}`);
+    expect(redis.deleteCache).toHaveBeenCalledWith('cache:room:general');
+  });
+
+  it.each([RoomType.DM, RoomVisibility.PRIVATE])(
+    'rejects joining restricted room %s',
+    async (restriction) => {
+      if (restriction === RoomType.DM) room.type = RoomType.DM;
+      else room.visibility = RoomVisibility.PRIVATE;
+      await expect(service.joinRoom(rid, tid)).rejects.toThrow(
         ForbiddenException,
       );
+      expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+    },
+  );
 
-      expect(mockRoomModel).not.toHaveBeenCalled();
-    });
+  it('reports duplicate/concurrent membership updates as conflicts', async () => {
+    model.findOneAndUpdate.mockReturnValue(query(null));
+    await expect(service.joinRoom(rid, tid)).rejects.toThrow(ConflictException);
+    expect(redis.deleteCache).not.toHaveBeenCalled();
+  });
 
-    it('should reject a group room without a name', async () => {
-      const dto: CreateRoomDto = {
-        type: RoomType.GROUP,
-      };
+  it('allows normal members to leave with an atomic pull', async () => {
+    await service.leaveRoom(rid, tid);
+    expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: roomId }),
+      { $pull: { members: { userId: target } } },
+      { new: true },
+    );
+  });
 
-      await expect(service.createRoom(userId, dto)).rejects.toThrow(
-        ConflictException,
-      );
+  it('blocks owners, nonmembers and DM participants from leaving', async () => {
+    await expect(service.leaveRoom(rid, oid)).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(service.leaveRoom(rid, outsider.toString())).rejects.toThrow(
+      ForbiddenException,
+    );
+    room.type = RoomType.DM;
+    await expect(service.leaveRoom(rid, tid)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
 
-      expect(mockRoomModel).not.toHaveBeenCalled();
-    });
-
-    it('should trim room fields before creating the room', async () => {
-      const dto: CreateRoomDto = {
-        type: RoomType.GROUP,
-        name: '  General Chat  ',
-        description: '  General discussion  ',
-      };
-
-      const savedRoom = createMockRoom();
-      const save = jest
-        .fn<HydratedDocument<Room>['save']>()
-        .mockResolvedValue(savedRoom);
-
-      mockRoomModel.mockImplementationOnce((data: unknown) => {
-        const doc = createMockRoom(data as Partial<Room>);
-        doc.save = save;
-        return doc;
+  it.each([RoomMemberRole.OWNER, RoomMemberRole.MODERATOR])(
+    'allows %s to update with permissions in the database filter',
+    async (role) => {
+      room.members[0].role = role;
+      await service.updateRoom('general', oid, {
+        name: ' Updated ',
+        description: ' Topic ',
       });
-
-      await service.createRoom(userId, dto);
-
-      expect(mockRoomModel).toHaveBeenCalledWith(
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'General Chat',
-          description: 'General discussion',
-        }),
-      );
-    });
-  });
-
-  describe('findAllForUser', () => {
-    it('should return rooms belonging to the user', async () => {
-      const rooms = [createMockRoom()];
-
-      const exec = jest
-        .fn<() => Promise<HydratedDocument<Room>[]>>()
-        .mockResolvedValue(rooms);
-
-      const sort = jest.fn().mockReturnValue({
-        exec,
-      });
-
-      mockRoomModel.find.mockReturnValue({
-        sort,
-      });
-
-      const result = await service.findAllForUser(userId);
-
-      expect(mockRoomModel.find).toHaveBeenCalledWith({
-        'members.userId': expect.any(Types.ObjectId),
-      });
-
-      expect(sort).toHaveBeenCalledWith({
-        updatedAt: -1,
-      });
-
-      expect(exec).toHaveBeenCalled();
-      expect(result).toBe(rooms);
-    });
-  });
-
-  describe('findById', () => {
-    it('should return a room when it exists', async () => {
-      const room = createMockRoom();
-
-      mockRoomModel.findById.mockReturnValue({
-        exec: jest
-          .fn<() => Promise<HydratedDocument<Room>>>()
-          .mockResolvedValue(room),
-      });
-
-      const result = await service.findById(roomId);
-
-      expect(mockRoomModel.findById).toHaveBeenCalledWith(roomId);
-      expect(result).toBe(room);
-    });
-
-    it('should throw NotFoundException when the room does not exist', async () => {
-      mockRoomModel.findById.mockReturnValue({
-        exec: jest
-          .fn<() => Promise<HydratedDocument<Room> | null>>()
-          .mockResolvedValue(null),
-      });
-
-      await expect(service.findById(roomId)).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('findMembership', () => {
-    it('should return the member role when the user is a member', async () => {
-      const room = createMockRoom();
-
-      mockRoomModel.findOne.mockReturnValue({
-        exec: jest
-          .fn<() => Promise<HydratedDocument<Room>>>()
-          .mockResolvedValue(room),
-      });
-
-      const result = await service.findMembership(roomId, userId);
-
-      expect(mockRoomModel.findOne).toHaveBeenCalledWith(
-        {
           _id: roomId,
-          'members.userId': expect.any(Types.ObjectId),
-        },
-        {
           members: {
             $elemMatch: {
-              userId: expect.any(Types.ObjectId),
+              userId: owner,
+              role: { $in: [RoomMemberRole.OWNER, RoomMemberRole.MODERATOR] },
             },
           },
+        }),
+        { $set: { name: 'Updated', description: 'Topic' } },
+        { new: true, runValidators: true },
+      );
+    },
+  );
+
+  it('rejects ordinary members and DMs from room management', async () => {
+    await expect(service.updateRoom(rid, tid, { name: 'No' })).rejects.toThrow(
+      ForbiddenException,
+    );
+    room.type = RoomType.DM;
+    await expect(service.updateRoom(rid, oid, { name: 'No' })).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('deletes only with owner permissions in the database filter', async () => {
+    await service.deleteRoom('general', oid);
+    expect(model.deleteOne).toHaveBeenCalledWith({
+      _id: roomId,
+      type: RoomType.GROUP,
+      members: {
+        $elemMatch: { userId: owner, role: { $in: [RoomMemberRole.OWNER] } },
+      },
+    });
+    room.members[0].role = RoomMemberRole.MODERATOR;
+    await expect(service.deleteRoom(rid, oid)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('invites a registered target without inserting membership', async () => {
+    const result = await service.addMember(rid, oid, outsider.toString());
+    expect(result.roomId).toBe(rid);
+    expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ 'members.userId': { $ne: outsider } }),
+      {
+        $push: {
+          invitations: expect.objectContaining({
+            recipient: outsider,
+            invitedBy: owner,
+          }) as unknown,
         },
-      );
-
-      expect(result).toBe(RoomMemberRole.OWNER);
-    });
-
-    it('should return null when the user is not a member', async () => {
-      mockRoomModel.findOne.mockReturnValue({
-        exec: jest
-          .fn<() => Promise<HydratedDocument<Room> | null>>()
-          .mockResolvedValue(null),
-      });
-
-      const result = await service.findMembership(roomId, otherUserId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null when the room has no matching member', async () => {
-      const room = createMockRoom({
-        members: [],
-      });
-
-      mockRoomModel.findOne.mockReturnValue({
-        exec: jest
-          .fn<() => Promise<HydratedDocument<Room>>>()
-          .mockResolvedValue(room),
-      });
-
-      const result = await service.findMembership(roomId, otherUserId);
-
-      expect(result).toBeNull();
-    });
+      },
+      expect.any(Object),
+    );
+    expect(room.members).toHaveLength(2);
   });
 
-  describe('joinRoom', () => {
-    it('should add a user to a public group room', async () => {
-      const room = createMockRoom({
-        visibility: RoomVisibility.PUBLIC,
-      });
-
-      room.members = [
-        {
-          userId: new Types.ObjectId(otherUserId),
-          role: RoomMemberRole.OWNER,
-          joinedAt: new Date(),
-        },
-      ];
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const result = await service.joinRoom(roomId, userId);
-
-      expect(room.members).toHaveLength(2);
-      expect(room.members[1]).toEqual(
-        expect.objectContaining({
-          userId: expect.any(Types.ObjectId),
-          role: RoomMemberRole.MEMBER,
-          joinedAt: expect.any(Date),
-        }),
-      );
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-      expect(result).toBe(room);
-    });
-
-    it('should reject joining a DM room', async () => {
-      const room = createMockRoom({
-        type: RoomType.DM,
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.joinRoom(roomId, userId)).rejects.toThrow(
-        ForbiddenException,
-      );
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject joining a private room', async () => {
-      const room = createMockRoom({
-        visibility: RoomVisibility.PRIVATE,
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.joinRoom(roomId, userId)).rejects.toThrow(
-        ForbiddenException,
-      );
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject a user who is already a member', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.joinRoom(roomId, userId)).rejects.toThrow(
-        ConflictException,
-      );
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('leaveRoom', () => {
-    it('should remove a normal member from the room', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.OWNER,
-            joinedAt: new Date(),
-          },
-          {
-            userId: new Types.ObjectId(userId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const result = await service.leaveRoom(roomId, userId);
-
-      expect(room.members).toHaveLength(1);
-      expect(
-        room.members.some((member) => member.userId.toString() === userId),
-      ).toBe(false);
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-      expect(result).toBe(room);
-    });
-
-    it('should reject leaving when the user is not a member', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.leaveRoom(roomId, otherUserId)).rejects.toThrow(
-        NotFoundException,
-      );
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject the room owner from leaving', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.leaveRoom(roomId, userId)).rejects.toThrow(
-        ForbiddenException,
-      );
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('updateRoom', () => {
-    it('should allow the owner to update the room', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const dto: UpdateRoomDto = {
-        name: 'Updated Room',
-        description: 'Updated description',
-        visibility: RoomVisibility.PRIVATE,
-        capabilities: [RoomCapability.TEXT, RoomCapability.MEDIA],
-      };
-
-      const result = await service.updateRoom(roomId, userId, dto);
-
-      expect(room.name).toBe('Updated Room');
-      expect(room.description).toBe('Updated description');
-      expect(room.visibility).toBe(RoomVisibility.PRIVATE);
-      expect(room.capabilities).toEqual([
-        RoomCapability.TEXT,
-        RoomCapability.MEDIA,
-      ]);
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-      expect(result).toBe(room);
-    });
-
-    it('should allow a moderator to update the room', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(moderatorId),
-            role: RoomMemberRole.MODERATOR,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const dto: UpdateRoomDto = {
-        name: 'Moderator Updated Room',
-      };
-
-      await service.updateRoom(roomId, moderatorId, dto);
-
-      expect(room.name).toBe('Moderator Updated Room');
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-    });
-
-    it('should reject a normal member from updating the room', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
+  it.each([null, { type: UserType.GUEST }])(
+    'rejects missing or guest invitation recipients',
+    async (targetUser) => {
+      users.findById.mockResolvedValue(targetUser);
       await expect(
-        service.updateRoom(roomId, otherUserId, {
-          name: 'Unauthorized Update',
-        }),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should trim updated name and description', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await service.updateRoom(roomId, userId, {
-        name: '  Updated Room  ',
-        description: '  Updated description  ',
-      });
-
-      expect(room.name).toBe('Updated Room');
-      expect(room.description).toBe('Updated description');
-    });
-  });
-
-  describe('deleteRoom', () => {
-    it('should allow the owner to delete the room', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const exec = jest
-        .fn<() => Promise<{ deletedCount: number }>>()
-        .mockResolvedValue({
-          deletedCount: 1,
-        });
-
-      mockRoomModel.deleteOne.mockReturnValue({
-        exec,
-      });
-
-      await service.deleteRoom(roomId, userId);
-
-      expect(mockRoomModel.deleteOne).toHaveBeenCalledWith({
-        _id: roomId,
-      });
-
-      expect(exec).toHaveBeenCalled();
-    });
-
-    it('should reject a non-owner from deleting the room', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.deleteRoom(roomId, otherUserId)).rejects.toThrow(
-        ForbiddenException,
-      );
-
-      expect(mockRoomModel.deleteOne).not.toHaveBeenCalled();
-    });
-
-    it('should reject a moderator from deleting the room', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(moderatorId),
-            role: RoomMemberRole.MODERATOR,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.deleteRoom(roomId, moderatorId)).rejects.toThrow(
-        ForbiddenException,
-      );
-
-      expect(mockRoomModel.deleteOne).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('addMember', () => {
-    it('should allow the owner to add a member', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const result = await service.addMember(roomId, userId, otherUserId);
-
-      expect(room.members).toHaveLength(2);
-      expect(room.members[1]).toEqual(
-        expect.objectContaining({
-          userId: expect.any(Types.ObjectId),
-          role: RoomMemberRole.MEMBER,
-          joinedAt: expect.any(Date),
-        }),
-      );
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-      expect(result).toBe(room);
-    });
-
-    it('should allow a moderator to add a member', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(moderatorId),
-            role: RoomMemberRole.MODERATOR,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await service.addMember(roomId, moderatorId, otherUserId);
-
-      expect(room.members).toHaveLength(2);
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-    });
-
-    it('should reject a normal member from adding members', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(
-        service.addMember(roomId, otherUserId, moderatorId),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject adding an existing member', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(service.addMember(roomId, userId, userId)).rejects.toThrow(
-        ConflictException,
-      );
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('removeMember', () => {
-    it('should allow the owner to remove a member', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(userId),
-            role: RoomMemberRole.OWNER,
-            joinedAt: new Date(),
-          },
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const result = await service.removeMember(roomId, userId, otherUserId);
-
-      expect(room.members).toHaveLength(1);
-      expect(
-        room.members.some((member) => member.userId.toString() === otherUserId),
-      ).toBe(false);
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-      expect(result).toBe(room);
-    });
-
-    it('should allow a moderator to remove a member', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(moderatorId),
-            role: RoomMemberRole.MODERATOR,
-            joinedAt: new Date(),
-          },
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await service.removeMember(roomId, moderatorId, otherUserId);
-
-      expect(room.members).toHaveLength(1);
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-    });
-
-    it('should reject a normal member from removing members', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(
-        service.removeMember(roomId, otherUserId, moderatorId),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject removing a user who is not a member', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(
-        service.removeMember(roomId, userId, otherUserId),
+        service.addMember(rid, oid, outsider.toString()),
       ).rejects.toThrow(NotFoundException);
+      expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+    },
+  );
 
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject removing the room owner', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(
-        service.removeMember(roomId, userId, userId),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
+  it('prevents ordinary members from inviting', async () => {
+    await expect(
+      service.addMember(rid, tid, outsider.toString()),
+    ).rejects.toThrow(ForbiddenException);
   });
 
-  describe('updateMemberRole', () => {
-    it('should allow the owner to promote a member to moderator', async () => {
-      const room = createMockRoom({
+  it('binds invitation acceptance to recipient, expiry and absent membership atomically', async () => {
+    const invitationId = new Types.ObjectId();
+    await service.acceptInvitation(
+      'general',
+      invitationId.toString(),
+      outsider.toString(),
+    );
+    expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        _id: roomId,
+        'members.userId': { $ne: outsider },
+        invitations: {
+          $elemMatch: {
+            _id: invitationId,
+            recipient: outsider,
+            expiresAt: { $gt: anyDate },
+          },
+        },
+      }),
+      expect.objectContaining({
+        $pull: { invitations: { recipient: outsider } },
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it('binds declining an invitation to its recipient', async () => {
+    const invitationId = new Types.ObjectId();
+    await service.declineInvitation(rid, invitationId.toString(), tid);
+    expect(model.updateOne).toHaveBeenCalledWith(
+      {
+        _id: roomId,
+        invitations: { $elemMatch: { _id: invitationId, recipient: target } },
+      },
+      { $pull: { invitations: { _id: invitationId, recipient: target } } },
+    );
+    model.updateOne.mockReturnValue(query({ modifiedCount: 0 }));
+    await expect(
+      service.declineInvitation(rid, invitationId.toString(), oid),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('allows managers to remove nonowners atomically', async () => {
+    await service.removeMember(rid, oid, tid);
+    expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: roomId, $and: anyArray }),
+      { $pull: { members: { userId: target } } },
+      { new: true },
+    );
+    await expect(service.removeMember(rid, oid, oid)).rejects.toThrow(
+      ForbiddenException,
+    );
+    await expect(service.removeMember(rid, tid, oid)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('allows owners to change member roles with a conditional array update', async () => {
+    await service.updateMemberRole(rid, oid, tid, RoomMemberRole.MODERATOR);
+    expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ _id: roomId, $and: anyArray }),
+      { $set: { 'members.$[target].role': RoomMemberRole.MODERATOR } },
+      {
+        arrayFilters: [{ 'target.userId': target }],
+        new: true,
+        runValidators: true,
+      },
+    );
+  });
+
+  it('rejects invalid roles, ownership changes and nonowner role management', async () => {
+    await expect(
+      service.updateMemberRole(rid, oid, tid, RoomMemberRole.OWNER),
+    ).rejects.toThrow(BadRequestException);
+    await expect(
+      service.updateMemberRole(rid, oid, oid, RoomMemberRole.MODERATOR),
+    ).rejects.toThrow(ForbiddenException);
+    room.members[0].role = RoomMemberRole.MODERATOR;
+    await expect(
+      service.updateMemberRole(rid, oid, tid, RoomMemberRole.MEMBER),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects self DMs and nonfriends before creating a room', async () => {
+    await expect(service.createDm(oid, oid)).rejects.toThrow(
+      BadRequestException,
+    );
+    friendships.assertFriends.mockRejectedValue(new ConflictException());
+    await expect(service.createDm(oid, tid)).rejects.toThrow(ConflictException);
+    expect(model.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a private DM with a canonical unique pair and exactly two members', async () => {
+    model.findOne.mockReturnValue(query(null));
+    await service.createDm(oid, tid);
+    expect(model.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dmPairKey: [oid, tid].sort().join(':'),
+        type: RoomType.DM,
+        visibility: RoomVisibility.PRIVATE,
+        capabilities: [RoomCapability.TEXT],
         members: [
           {
-            userId: new Types.ObjectId(userId),
-            role: RoomMemberRole.OWNER,
-            joinedAt: new Date(),
-          },
-          {
-            userId: new Types.ObjectId(otherUserId),
+            userId: owner,
             role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      const result = await service.updateMemberRole(
-        roomId,
-        userId,
-        otherUserId,
-        RoomMemberRole.MODERATOR,
-      );
-
-      expect(room.members[1].role).toBe(RoomMemberRole.MODERATOR);
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-      expect(result).toBe(room);
-    });
-
-    it('should allow the owner to change a moderator to member', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(userId),
-            role: RoomMemberRole.OWNER,
-            joinedAt: new Date(),
+            joinedAt: anyDate,
           },
           {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MODERATOR,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(room, 'save').mockResolvedValue(room);
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await service.updateMemberRole(
-        roomId,
-        userId,
-        otherUserId,
-        RoomMemberRole.MEMBER,
-      );
-
-      expect(room.members[1].role).toBe(RoomMemberRole.MEMBER);
-      expect(jest.spyOn(room, 'save')).toHaveBeenCalled();
-    });
-
-    it('should reject a moderator from changing member roles', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(moderatorId),
-            role: RoomMemberRole.MODERATOR,
-            joinedAt: new Date(),
-          },
-          {
-            userId: new Types.ObjectId(otherUserId),
+            userId: target,
             role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
+            joinedAt: anyDate,
           },
         ],
-      });
+      }),
+    );
+  });
 
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
+  it('returns an existing DM and recovers from concurrent creation', async () => {
+    await expect(service.createDm(oid, tid)).resolves.toBe(room);
+    model.findOne
+      .mockReturnValueOnce(query(null))
+      .mockReturnValueOnce(query(room));
+    model.create.mockRejectedValue({ code: 11000 });
+    await expect(service.createDm(tid, oid)).resolves.toBe(room);
+  });
 
-      await expect(
-        service.updateMemberRole(
-          roomId,
-          moderatorId,
-          otherUserId,
-          RoomMemberRole.MODERATOR,
-        ),
-      ).rejects.toThrow(ForbiddenException);
+  it('requires an accepted friendship on every DM send', async () => {
+    room.type = RoomType.DM;
+    await service.assertCanSend(room, oid);
+    expect(friendships.assertFriends).toHaveBeenCalledWith(oid, tid);
+    friendships.assertFriends.mockRejectedValue(new ConflictException());
+    await expect(service.assertCanSend(room, oid)).rejects.toThrow(
+      ConflictException,
+    );
+    await expect(
+      service.assertCanSend(room, outsider.toString()),
+    ).rejects.toThrow(ForbiddenException);
+  });
 
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
+  it('does not require friendship for group sends', async () => {
+    await service.assertCanSend(room, tid);
+    expect(friendships.assertFriends).not.toHaveBeenCalled();
+  });
+
+  it('returns public member profiles only to room members', async () => {
+    users.publicProfiles.mockResolvedValue([
+      { _id: owner, username: 'owner', displayName: 'Owner', email: 'private' },
+    ]);
+    const profiles = await service.members(rid, oid);
+    expect(profiles[0]).toEqual({
+      id: oid,
+      username: 'owner',
+      displayName: 'Owner',
+      role: RoomMemberRole.OWNER,
+      joinedAt: anyDate,
     });
+    expect(profiles[0]).not.toHaveProperty('email');
+    await expect(service.members(rid, outsider.toString())).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
 
-    it('should reject a normal member from changing member roles', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
+  it('prevents a moderator from removing another moderator', async () => {
+    room.members[0].role = RoomMemberRole.MODERATOR;
+    room.members[1].role = RoomMemberRole.MODERATOR;
+    await expect(service.removeMember(rid, oid, tid)).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
 
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
+  it('rejects stale invitation acceptance without cache invalidation', async () => {
+    model.findOneAndUpdate.mockReturnValue(query(null));
+    await expect(
+      service.acceptInvitation(rid, new Types.ObjectId().toString(), tid),
+    ).rejects.toThrow(ConflictException);
+    expect(redis.deleteCache).not.toHaveBeenCalled();
+  });
 
-      await expect(
-        service.updateMemberRole(
-          roomId,
-          otherUserId,
-          userId,
-          RoomMemberRole.MODERATOR,
-        ),
-      ).rejects.toThrow(ForbiddenException);
+  it('rejects duplicate invitations and invitations to existing members', async () => {
+    model.findOneAndUpdate.mockReturnValue(query(null));
+    await expect(service.addMember(rid, oid, tid)).rejects.toThrow(
+      ConflictException,
+    );
+    expect(redis.deleteCache).not.toHaveBeenCalled();
+  });
 
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
+  it('allows moderator invitations but forbids DM invitations', async () => {
+    room.members[0].role = RoomMemberRole.MODERATOR;
+    await expect(
+      service.addMember(rid, oid, outsider.toString()),
+    ).resolves.toHaveProperty('roomId', rid);
+    model.findOneAndUpdate.mockClear();
+    room.type = RoomType.DM;
+    await expect(
+      service.addMember(rid, oid, outsider.toString()),
+    ).rejects.toThrow(ForbiddenException);
+    expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('filters expired and other recipients from the invitation inbox', async () => {
+    const mine = new Types.ObjectId();
+    const expiry = new Date(Date.now() + 60000);
+    room.invitations = [
+      { _id: mine, recipient: target, invitedBy: owner, expiresAt: expiry },
+      {
+        _id: new Types.ObjectId(),
+        recipient: target,
+        invitedBy: owner,
+        expiresAt: new Date(0),
+      },
+      {
+        _id: new Types.ObjectId(),
+        recipient: outsider,
+        invitedBy: owner,
+        expiresAt: expiry,
+      },
+    ];
+    model.find.mockReturnValue({
+      select: jest.fn().mockReturnValue(query([room])),
     });
-
-    it('should reject changing the owner role', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(
-        service.updateMemberRole(
-          roomId,
-          userId,
-          userId,
-          RoomMemberRole.MODERATOR,
-        ),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject assigning the owner role', async () => {
-      const room = createMockRoom({
-        members: [
-          {
-            userId: new Types.ObjectId(userId),
-            role: RoomMemberRole.OWNER,
-            joinedAt: new Date(),
-          },
-          {
-            userId: new Types.ObjectId(otherUserId),
-            role: RoomMemberRole.MEMBER,
-            joinedAt: new Date(),
-          },
-        ],
-      });
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(
-        service.updateMemberRole(
-          roomId,
-          userId,
-          otherUserId,
-          RoomMemberRole.OWNER,
-        ),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
-
-    it('should reject changing the role of a non-member', async () => {
-      const room = createMockRoom();
-
-      jest.spyOn(service, 'findById').mockResolvedValue(room);
-
-      await expect(
-        service.updateMemberRole(
-          roomId,
-          userId,
-          otherUserId,
-          RoomMemberRole.MODERATOR,
-        ),
-      ).rejects.toThrow(ForbiddenException);
-
-      expect(jest.spyOn(room, 'save')).not.toHaveBeenCalled();
-    });
+    await expect(service.invitations(tid)).resolves.toEqual([
+      {
+        id: mine.toString(),
+        roomId: rid,
+        roomName: 'General',
+        invitedBy: oid,
+        expiresAt: expiry,
+      },
+    ]);
   });
 });

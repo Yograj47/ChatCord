@@ -8,6 +8,8 @@ import { UsernameOnboardingPage } from '../pages/auth/UsernameOnboardingPage';
 import { AppLayout } from '../layouts/AppLayout';
 import { ChatContainer } from '../components/chat/ChatContainer';
 import { useAuth } from '../hooks/useAuth';
+import { FriendsPage } from '../pages/app/FriendsPage';
+import { InvitationsPage } from '../pages/app/InvitationsPage';
 
 // Import the layout-specific skeletons we created
 import { AuthLayoutSkeleton } from '../components/common/AuthLayoutSkeleton';
@@ -84,6 +86,8 @@ export const AppRouter: React.FC = () => {
             >
                 {/* Default redirect to dev-general if no */}
                 <Route index element={<AppHomeDashboard />} />
+                <Route path="friends" element={<FriendsPage />} />
+                <Route path="invitations" element={<InvitationsPage />} />
 
                 {/* Active channel / room view */}
                 <Route path="rooms/:roomId" element={<ChatContainer />} />

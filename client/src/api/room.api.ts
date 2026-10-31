@@ -5,9 +5,16 @@ import type {
     CreateRoomDto,
     UpdateRoomDto,
     RoomMemberRole,
+    RoomInvitation,
+    SentRoomInvitation,
+    RoomMemberProfile,
 } from '../types/room';
 
 export const roomsApi = {
+    getMembers: async (roomId: string): Promise<RoomMemberProfile[]> => (await api.get<RoomMemberProfile[]>(`/rooms/${roomId}/members`)).data,
+    getInvitations: async (): Promise<RoomInvitation[]> => (await api.get<RoomInvitation[]>('/rooms/invitations')).data,
+    acceptInvitation: async (roomId: string, invitationId: string): Promise<Room> => (await api.post<Room>(`/rooms/${roomId}/invitations/${invitationId}/accept`)).data,
+    declineInvitation: async (roomId: string, invitationId: string): Promise<void> => { await api.delete(`/rooms/${roomId}/invitations/${invitationId}`); },
     // Create a room (POST /api/rooms)
     createRoom: async (payload: CreateRoomDto): Promise<Room> => {
         const { data } = await api.post<Room>('/rooms', payload);
@@ -59,12 +66,12 @@ export const roomsApi = {
         return data;
     },
 
-    // Add a member (POST /api/rooms/:roomId/members)
+    // Invite a member; the recipient must accept before joining.
     addMember: async (
         roomId: string,
         userId: string,
-    ): Promise<Room> => {
-        const { data } = await api.post<Room>(
+    ): Promise<SentRoomInvitation> => {
+        const { data } = await api.post<SentRoomInvitation>(
             `/rooms/${roomId}/members`,
             { userId },
         );

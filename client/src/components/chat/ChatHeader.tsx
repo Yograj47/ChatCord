@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Hash, Users, Pin, Shield, Settings, Loader2 } from 'lucide-react';
+import { Hash, Users, Pin, Shield, Settings, Loader2, UserPlus } from 'lucide-react';
 
 interface Member {
   id: string;
   username: string;
   displayName: string;
-  role: 'owner' | 'admin' | 'member';
+  role: 'owner' | 'moderator' | 'member';
 }
 
 interface ChatHeaderProps {
@@ -15,6 +15,9 @@ interface ChatHeaderProps {
   isLoadingMembers?: boolean;
   onOpenEdit?: () => void; // <-- Callback to open edit modal
   canManageRoom?: boolean;
+  onInvite?: () => void;
+  onOpenMembers?: () => void;
+  memberCount?: number;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -24,6 +27,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   isLoadingMembers = false,
   onOpenEdit,
   canManageRoom = true,
+  onInvite,
+  onOpenMembers,
+  memberCount,
 }) => {
   const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [isPinsOpen, setIsPinsOpen] = useState(false);
@@ -47,16 +53,18 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <button
             type="button"
             onClick={() => {
+              if (onOpenMembers) { onOpenMembers(); return; }
               setIsMembersOpen(!isMembersOpen);
               setIsPinsOpen(false);
             }}
+            aria-label="Members and permissions"
             className={`flex items-center space-x-1.5 text-xs px-2.5 py-1 rounded-lg border transition-colors ${isMembersOpen
                 ? 'bg-indigo-600/10 border-indigo-500/40 text-indigo-400'
                 : 'bg-zinc-900 border-zinc-800 hover:text-zinc-200'
               }`}
           >
             <Users className="h-3.5 w-3.5 text-zinc-500" />
-            <span>{members.length}</span>
+            <span>{memberCount ?? members.length}</span>
           </button>
 
           {isMembersOpen && (
@@ -145,6 +153,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
 
         {/* Room Settings / Edit Button */}
+        {canManageRoom && onInvite && <button type="button" onClick={onInvite} title="Invite people" aria-label="Invite people" className="p-1.5 rounded-lg border bg-zinc-900 border-zinc-800 hover:text-zinc-200 hover:border-zinc-700 transition-colors"><UserPlus className="h-4 w-4" /></button>}
         {canManageRoom && onOpenEdit && (
           <button
             type="button"

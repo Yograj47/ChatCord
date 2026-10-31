@@ -163,7 +163,7 @@ describe('UsersService', () => {
         url: googleData.avatarUrl,
         source: AvatarSource.GOOGLE,
       });
-      expect(result.username).toMatch(/^john_[a-f0-9]{6}$/);
+      expect(result.username).toBeUndefined();
     });
 
     it('should create a user document with undefined avatar if avatarUrl is not provided', async () => {
@@ -176,10 +176,10 @@ describe('UsersService', () => {
       const result = await service.createFromGoogle(googleData);
 
       expect(result.avatar).toBeUndefined();
-      expect(result.username).toMatch(/^jane_[a-f0-9]{6}$/);
+      expect(result.username).toBeUndefined();
     });
 
-    it('should fallback to "user_" base for username generation if email prefix contains special characters', async () => {
+    it('should leave username unset for onboarding even with an unusual email prefix', async () => {
       const googleData = {
         email: '!!!@example.com',
         displayName: 'Special Name',
@@ -188,7 +188,7 @@ describe('UsersService', () => {
 
       const result = await service.createFromGoogle(googleData);
 
-      expect(result.username).toMatch(/^user_[a-f0-9]{6}$/);
+      expect(result.username).toBeUndefined();
     });
   });
 

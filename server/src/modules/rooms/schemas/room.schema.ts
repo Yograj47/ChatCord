@@ -57,6 +57,28 @@ export const RoomMemberSchema = SchemaFactory.createForClass(RoomMember);
   strict: true,
 })
 export class Room {
+  @Prop({ unique: true, sparse: true })
+  dmPairKey?: string;
+
+  @Prop({
+    type: [
+      {
+        _id: { type: Types.ObjectId, auto: true },
+        recipient: { type: Types.ObjectId, ref: 'User', required: true },
+        invitedBy: { type: Types.ObjectId, ref: 'User', required: true },
+        expiresAt: { type: Date, required: true },
+      },
+    ],
+    default: [],
+    select: false,
+  })
+  invitations!: {
+    _id: Types.ObjectId;
+    recipient: Types.ObjectId;
+    invitedBy: Types.ObjectId;
+    expiresAt: Date;
+  }[];
+
   @Prop({
     required: true,
     enum: RoomType,

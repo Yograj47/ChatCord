@@ -47,6 +47,7 @@ describe('MessagesService', () => {
   });
 
   const mockRoomsService = {
+    assertCanSend: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
     findById:
       jest.fn<
         (roomId: string) => Promise<{ capabilities: RoomCapability[] }>
