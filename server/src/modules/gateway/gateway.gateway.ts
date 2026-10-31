@@ -26,13 +26,18 @@ import { RoomEventsService } from '../rooms/room-events.service';
 import { SocketSessionGuard } from './socket-session.guard';
 import { GatewayExceptionFilter } from './gateway-exception.filter';
 import { SessionType } from '../auth/schemas/session.schema';
-import { RoomEventDto, SendMessageEventDto } from './dto/room-event.dto';
+import {
+  RoomEventDto,
+  SendMessageEventDto,
+  PresenceSyncDto,
+} from './dto/room-event.dto';
 import { MessageEventsService } from '../messages/message-events.service';
 
 interface GatewaySocketData {
   userId?: string;
   sessionId?: string;
   sessionType?: string;
+  typingRooms?: Set<string>;
 }
 
 interface GatewayServerToClientEvents {
@@ -111,6 +116,9 @@ export class GatewayGateway
         namespace
           .to(`user:${removedUserId}`)
           .emit('room-access-revoked', { roomId });
+        namespace
+          .to(roomId)
+          .emit('user-stopped-typing', { roomId, userId: removedUserId });
       }
       namespace.to(roomId).emit('room-members-changed', { roomId });
     });
@@ -139,13 +147,12 @@ export class GatewayGateway
 
       await client.join(`user:${userId}`);
 
-      const sockets = await this.redisService.getPresence(userId);
-
-      await this.redisService.addPresence(userId, client.id);
-
-      if (sockets.length === 0) {
-        client.broadcast.emit('user-online', { userId });
+      const previous = await this.redisService.addPresence(userId, client.id);
+      if (!client.connected) {
+        await this.redisService.removePresence(userId, client.id);
+        return;
       }
+      if (previous === 0) await this.publishPresence(userId, true);
 
       console.log(`Socket connected: ${client.id}`);
     } catch {
@@ -164,15 +171,77 @@ export class GatewayGateway
       return;
     }
 
-    await this.redisService.removePresence(userId, client.id);
-
-    const remainingSockets = await this.redisService.getPresence(userId);
-
-    if (remainingSockets.length === 0 && !this.shuttingDown) {
-      client.broadcast.emit('user-offline', { userId });
-    }
+    await Promise.all(
+      [...(client.data.typingRooms ?? [])].map((roomId) =>
+        this.stopTyping(client, roomId),
+      ),
+    );
+    const remaining = await this.redisService.removePresence(userId, client.id);
+    if (remaining === 0 && !this.shuttingDown)
+      await this.publishPresence(userId, false);
 
     console.log(`Socket disconnected: ${client.id}`);
+  }
+
+  private async publishPresence(userId: string, online: boolean) {
+    const peers = await this.roomsService.presencePeers(userId);
+    // A reconnect may finish while the peer lookup is in flight.
+    if ((await this.redisService.getPresence(userId)).length > 0 !== online)
+      return;
+    if (!this.shuttingDown)
+      this.namespace
+        .to(peers.map((id) => `user:${id}`))
+        .emit(online ? 'user-online' : 'user-offline', { userId });
+  }
+
+  @SubscribeMessage('presence-sync')
+  async syncPresence(
+    @ConnectedSocket() client: GatewaySocket,
+    @MessageBody() data: PresenceSyncDto,
+  ) {
+    const userId = client.data.userId!;
+    if (
+      !(await this.rateLimitService.check(
+        'presence',
+        `${userId}:${client.id}`,
+        30,
+        60,
+      ))
+    )
+      throw new WsException('Too many presence requests.');
+    const previous = await this.redisService.addPresence(userId, client.id);
+    if (previous === 0) await this.publishPresence(userId, true);
+    const allowed = new Set(await this.roomsService.presencePeers(userId));
+    const ids = [...new Set(data.userIds.map((id) => id.toLowerCase()))].filter(
+      (id) => allowed.has(id),
+    );
+    const users = await Promise.all(
+      ids.map(async (id) => ({
+        userId: id,
+        online: (await this.redisService.getPresence(id)).length > 0,
+      })),
+    );
+    return { ok: true, users };
+  }
+
+  @SubscribeMessage('typing-state')
+  async typingState(
+    @ConnectedSocket() client: GatewaySocket,
+    @MessageBody() data: RoomEventDto,
+  ) {
+    await this.assertRoomMembership(client, data.roomId);
+    if (!client.rooms.has(data.roomId))
+      throw new WsException('Join the room first.');
+    const room = await this.roomsService.findById(data.roomId);
+    const members = new Set(
+      room.members.map((member) => member.userId.toString()),
+    );
+    return {
+      ok: true,
+      userIds: (await this.redisService.getTyping(data.roomId)).filter((id) =>
+        members.has(id),
+      ),
+    };
   }
 
   @SubscribeMessage('join-room')
@@ -243,6 +312,7 @@ export class GatewayGateway
     }
 
     await client.leave(data.roomId);
+    await this.stopTyping(client, data.roomId);
 
     client.to(data.roomId).emit('user-left-room', {
       roomId: data.roomId,
@@ -282,6 +352,7 @@ export class GatewayGateway
         replyTo: data.replyTo,
       },
     );
+    await this.stopTyping(client, data.roomId);
 
     // Include the sender's other tabs, and deduplicate by message ID in clients.
 
@@ -304,12 +375,24 @@ export class GatewayGateway
       throw new WsException('Too many typing events. Please slow down.');
     }
 
-    await this.redisService.setTyping(data.roomId, userId);
+    if (!client.rooms.has(data.roomId))
+      throw new WsException('Join the room first.');
+    const room = await this.roomsService.findById(data.roomId);
+    await this.roomsService.assertCanSend(room, userId);
+    if (
+      !room.capabilities.includes(
+        'text' as import('../rooms/schemas/room.schema').RoomCapability,
+      )
+    )
+      throw new WsException('Text messages are disabled.');
+    await this.redisService.setTyping(data.roomId, userId, client.id);
+    (client.data.typingRooms ??= new Set()).add(data.roomId);
 
     client.to(data.roomId).emit('user-typing', {
       roomId: data.roomId,
       userId,
     });
+    return { ok: true };
   }
 
   @SubscribeMessage('typing-stop')
@@ -317,14 +400,21 @@ export class GatewayGateway
     @ConnectedSocket() client: GatewaySocket,
     @MessageBody() data: RoomEventDto,
   ) {
-    const userId = await this.assertRoomMembership(client, data.roomId);
+    await this.assertRoomMembership(client, data.roomId);
+    await this.stopTyping(client, data.roomId);
+    return { ok: true };
+  }
 
-    await this.redisService.clearTyping(data.roomId, userId);
-
-    client.to(data.roomId).emit('user-stopped-typing', {
-      roomId: data.roomId,
-      userId,
-    });
+  private async stopTyping(client: GatewaySocket, roomId: string) {
+    const userId = client.data.userId;
+    if (!userId || !client.data.typingRooms?.has(roomId)) return;
+    client.data.typingRooms.delete(roomId);
+    await this.redisService.clearTyping(roomId, userId, client.id);
+    if (
+      !this.shuttingDown &&
+      !(await this.redisService.isTyping(roomId, userId))
+    )
+      this.namespace.to(roomId).emit('user-stopped-typing', { roomId, userId });
   }
 
   private async assertRoomMembership(

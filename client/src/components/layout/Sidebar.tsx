@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { socialApi } from '../../api/social.api';
 import { useAuth } from '../../hooks/useAuth';
 import { showError } from '../../lib/toast';
+import { usePresence } from '../../hooks/usePresence';
 
 export const Sidebar: React.FC = () => {
     const navigate = useNavigate();
@@ -24,6 +25,8 @@ export const Sidebar: React.FC = () => {
     const enabled = sessionData?.type === 'registered';
     const invitations = useInvitations(enabled ? sessionData?.id : undefined);
     const dms = useQuery({ queryKey: ['dms', sessionData?.id], queryFn: socialApi.listDms, enabled });
+    const peerIds = (dms.data ?? []).flatMap(room => room.members.map(member => member.userId?._id).filter((id): id is string => Boolean(id)));
+    const presence = usePresence([...peerIds, ...(sessionData?.id ? [sessionData.id] : [])]);
     const friends = useQuery({ queryKey: ['friends', sessionData?.id], queryFn: socialApi.friends, enabled: enabled && showFriends });
     const createDm = useMutation({
         mutationFn: socialApi.createDm,
@@ -53,7 +56,7 @@ export const Sidebar: React.FC = () => {
     const dmItems: DMItem[] = (dms.data ?? []).map((room) => ({
         id: room._id,
         name: room.members.find((member) => member.userId && member.userId._id !== sessionData?.id)?.userId?.displayName ?? 'Deleted user',
-        isOnline: false,
+        status: presence.status(room.members.find(member => member.userId?._id !== sessionData?.id)?.userId?._id ?? ''),
     }));
     const filteredDms = dmItems.filter((d) =>
         d.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -77,7 +80,7 @@ export const Sidebar: React.FC = () => {
         <aside className="h-full w-full bg-[#0f1117] border-r border-zinc-800/80 flex flex-col justify-between shrink-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto min-h-0">
                 <div className="h-12 px-4 border-b border-zinc-800/80 flex items-center shrink-0">
-                    <HeaderBranding latencyMs={24} isConnected={true} />
+                    <HeaderBranding isConnected={presence.isConnected} />
                 </div>
 
                 <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
@@ -117,7 +120,7 @@ export const Sidebar: React.FC = () => {
                 </div>
             </div>
 
-            <UserProfileFooter displayName={sessionData?.user?.displayName ?? 'Guest'} initials={(sessionData?.user?.displayName ?? 'Guest').split(' ').map((part) => part.charAt(0)).join('').slice(0, 2).toUpperCase()} isOnline={true} />
+            <UserProfileFooter displayName={sessionData?.user?.displayName ?? 'Guest'} initials={(sessionData?.user?.displayName ?? 'Guest').split(' ').map((part) => part.charAt(0)).join('').slice(0, 2).toUpperCase()} status={presence.status(sessionData?.id ?? '')} />
         </aside>
     );
 };

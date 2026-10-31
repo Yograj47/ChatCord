@@ -8,6 +8,9 @@ import { useAuth } from "../../hooks/useAuth";
 import { useLayoutStore } from "../../stores/layout.store";
 import { useAppStore } from "../../stores/app.store";
 import { showError, showSuccess } from "../../lib/toast";
+import { usePresence } from '../../hooks/usePresence';
+import { PresenceBadge } from '../../components/common/PresenceBadge';
+import type { PresenceStatus } from '../../types/realtime';
 
 type View = "friends" | "requests" | "search";
 type Action = {
@@ -31,10 +34,12 @@ function errorMessage(error: unknown): string {
 function PersonRow({
   user,
   detail,
+  presenceStatus,
   children,
 }: {
   user: PublicUser | null;
   detail?: string;
+  presenceStatus?: PresenceStatus;
   children: ReactNode;
 }) {
   return (
@@ -53,6 +58,7 @@ function PersonRow({
           <p className="text-xs text-zinc-500">@{user.username}</p>
         )}
         {detail && <p className="mt-1 text-xs text-zinc-400">{detail}</p>}
+        {presenceStatus && <PresenceBadge status={presenceStatus} />}
       </div>
       <div className="flex flex-wrap gap-2">{children}</div>
     </li>
@@ -110,6 +116,7 @@ function RegisteredFriends({ userId }: { userId: string }) {
     queryFn: socialApi.requests,
     refetchInterval: 30000,
   });
+  const presence = usePresence((friends.data ?? []).map(friend => friend.user._id));
   const search = useQuery({
     queryKey: ["user-search", userId, debounced],
     queryFn: ({ signal }) => socialApi.searchUsers(debounced, signal),
@@ -336,7 +343,7 @@ function RegisteredFriends({ userId }: { userId: string }) {
             )}
             <ul aria-label="Your friends" className="space-y-3">
               {friends.data?.map(({ id, user }) => (
-                <PersonRow key={id} user={user}>
+                <PersonRow key={id} user={user} presenceStatus={presence.status(user._id)}>
                   {removeId === id ? (
                     <>
                       <span className="basis-full text-xs text-zinc-400">

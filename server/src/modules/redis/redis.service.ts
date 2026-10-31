@@ -42,39 +42,99 @@ export class RedisService implements OnApplicationShutdown {
   }
 
   async addPresence(userId: string, socketId: string): Promise<number> {
-    return this.redisClient.sAdd(`presence:user:${userId}`, socketId);
+    // Leases expire after crashes; renewing one tab never extends another tab.
+    return Number(
+      await this.redisClient.eval(
+        `
+      redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
+      local previous = redis.call('ZCARD', KEYS[1])
+      redis.call('ZADD', KEYS[1], ARGV[2], ARGV[3])
+      redis.call('EXPIRE', KEYS[1], 120)
+      return previous
+    `,
+        {
+          keys: [`presence:v2:user:${userId}`],
+          arguments: [String(Date.now()), String(Date.now() + 60000), socketId],
+        },
+      ),
+    );
   }
 
   async removePresence(userId: string, socketId: string): Promise<number> {
-    return this.redisClient.sRem(`presence:user:${userId}`, socketId);
+    return Number(
+      await this.redisClient.eval(
+        `
+      redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
+      redis.call('ZREM', KEYS[1], ARGV[2])
+      return redis.call('ZCARD', KEYS[1])
+    `,
+        {
+          keys: [`presence:v2:user:${userId}`],
+          arguments: [String(Date.now()), socketId],
+        },
+      ),
+    );
   }
 
   async getPresence(userId: string): Promise<string[]> {
-    return this.redisClient.sMembers(`presence:user:${userId}`);
+    const key = `presence:v2:user:${userId}`;
+    await this.redisClient.zRemRangeByScore(key, '-inf', Date.now());
+    return this.redisClient.zRange(key, 0, -1);
   }
 
-  private typingKey(roomId: string, userId: string): string {
-    return `typing:${roomId}:${userId}`;
+  private typingKey(roomId: string): string {
+    return `typing:v2:${roomId}`;
   }
 
   async setTyping(
     roomId: string,
     userId: string,
+    socketId: string,
     ttlSeconds = 5,
   ): Promise<void> {
-    await this.redisClient.set(this.typingKey(roomId, userId), '1', {
-      EX: ttlSeconds,
-    });
+    await this.redisClient.eval(
+      `
+      redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
+      redis.call('ZADD', KEYS[1], ARGV[2], ARGV[3])
+      redis.call('EXPIRE', KEYS[1], 15)
+      return 1
+    `,
+      {
+        keys: [this.typingKey(roomId)],
+        arguments: [
+          String(Date.now()),
+          String(Date.now() + ttlSeconds * 1000),
+          `${userId}:${socketId}`,
+        ],
+      },
+    );
   }
 
-  async clearTyping(roomId: string, userId: string): Promise<void> {
-    await this.redisClient.del(this.typingKey(roomId, userId));
+  async clearTyping(
+    roomId: string,
+    userId: string,
+    socketId: string,
+  ): Promise<void> {
+    await this.redisClient.zRem(
+      this.typingKey(roomId),
+      `${userId}:${socketId}`,
+    );
   }
 
   async isTyping(roomId: string, userId: string): Promise<boolean> {
-    return (
-      (await this.redisClient.exists(this.typingKey(roomId, userId))) === 1
-    );
+    return (await this.getTyping(roomId)).includes(userId);
+  }
+
+  async getTyping(roomId: string): Promise<string[]> {
+    const key = this.typingKey(roomId);
+    await this.redisClient.zRemRangeByScore(key, '-inf', Date.now());
+    return [
+      ...new Set(
+        (await this.redisClient.zRange(key, 0, -1)).map(
+          (value) => value.split(':')[0],
+        ),
+      ),
+    ];
   }
 
   async incrementRateLimit(

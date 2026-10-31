@@ -5,8 +5,9 @@ interface TypingIndicatorProps {
 }
 
 export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
-  users = ['Alex'],
+  users = [],
 }) => {
+  if (!users.length) return null;
   const label =
     users.length === 1
       ? `${users[0]} is typing...`
@@ -15,7 +16,7 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
       : 'Multiple people are typing...';
 
   return (
-    <div className="flex items-center space-x-2 px-4 py-1 text-xs text-zinc-400">
+    <div role="status" aria-live="polite" className="flex items-center space-x-2 px-4 py-1 text-xs text-zinc-400">
       <div className="flex space-x-1 items-center">
         <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
         <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]" />

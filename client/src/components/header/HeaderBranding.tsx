@@ -7,8 +7,8 @@ interface HeaderBrandingProps {
 }
 
 export const HeaderBranding: React.FC<HeaderBrandingProps> = ({
-  latencyMs = 24,
-  isConnected = true,
+  latencyMs,
+  isConnected = false,
 }) => {
   return (
     <div className="flex items-center space-x-3 shrink-0">
@@ -17,7 +17,7 @@ export const HeaderBranding: React.FC<HeaderBrandingProps> = ({
         <span className="font-mono text-xs font-bold tracking-wider text-zinc-100">
           CHATCORD
         </span>
-        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+        <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-zinc-500'}`} />
       </div>
 
       {/* WS Latency Status Pill */}
@@ -27,7 +27,7 @@ export const HeaderBranding: React.FC<HeaderBrandingProps> = ({
             isConnected ? 'bg-emerald-400' : 'bg-rose-500'
           }`}
         />
-        <span>{isConnected ? `WS Live · ${latencyMs}ms` : 'Disconnected'}</span>
+        <span>{isConnected ? latencyMs === undefined ? 'WS Live' : `WS Live · ${latencyMs}ms` : 'Disconnected'}</span>
       </div>
     </div>
   );

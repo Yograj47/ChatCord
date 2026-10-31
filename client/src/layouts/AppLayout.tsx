@@ -5,9 +5,13 @@ import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
 import { GlobalSearchModal } from '../components/modals/GlobalSearchModal';
 import { CreateRoomModal } from '../components/modals/CreateRoomModal'; 
+import { useAuth } from '../hooks/useAuth';
+import { useSocket } from '../hooks/useSocket';
 
 export const AppLayout: React.FC = () => {
     const { mobileView } = useLayoutStore();
+    const { sessionData } = useAuth();
+    useSocket(sessionData?.type === 'registered');
 
     return (
         <div className="h-dvh w-vw max-h-dvh max-w-vw bg-[#0a0b0e] text-zinc-100 flex overflow-hidden font-sans antialiased selection:bg-indigo-500/30">

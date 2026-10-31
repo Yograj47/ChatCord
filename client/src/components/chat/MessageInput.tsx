@@ -17,6 +17,7 @@ interface MessageInputProps {
   disabledReason?: string;
   replyingTo?: ReplyingToState | null;
   onCancelReply?: () => void;
+  onTypingChange?: (typing: boolean) => void;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
@@ -26,6 +27,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   onCancelReply,
   disabled,
   disabledReason,
+  onTypingChange,
 }) => {
   const [content, setContent] = useState("");
   const [sending, setSending] = useState(false);
@@ -45,6 +47,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!content.trim() || sending || disabled) return;
+    onTypingChange?.(false);
     setSending(true);
     let sent: boolean;
     try {
@@ -125,7 +128,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           ref={textareaRef}
           rows={1}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={(e) => { setContent(e.target.value); onTypingChange?.(Boolean(e.target.value.trim())); }}
+          onBlur={() => onTypingChange?.(false)}
           onKeyDown={handleKeyDown}
           placeholder={
             disabledReason

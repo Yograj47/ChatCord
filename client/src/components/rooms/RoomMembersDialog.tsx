@@ -8,6 +8,8 @@ import { ROOM_QUERY_KEYS } from "../../hooks/useRoom";
 import { useAppStore } from "../../stores/app.store";
 import { showSuccess } from "../../lib/toast";
 import type { Room, RoomMemberRole } from "../../types/room";
+import { usePresence } from '../../hooks/usePresence';
+import { PresenceBadge } from '../common/PresenceBadge';
 
 const control =
   "rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-indigo-400 disabled:opacity-40";
@@ -35,6 +37,7 @@ export function RoomMembersDialog({
   const navigate = useNavigate();
   const setActiveRoomId = useAppStore((state) => state.setActiveRoomId);
   const isMember = room.members.some((member) => member.userId === userId);
+  const presence = usePresence(isMember ? room.members.map(member => member.userId) : []);
   const members = useQuery({
     queryKey: ["room-members", room._id, userId],
     queryFn: () => roomsApi.getMembers(room._id),
@@ -198,6 +201,7 @@ export function RoomMembersDialog({
                 <div className="min-w-0 flex-1">
                   <p className="break-words text-sm font-medium">
                     {member.displayName}
+                    <PresenceBadge status={presence.status(member.id)} />
                     {member.id === userId ? " (you)" : ""}
                   </p>
                   {member.username && (

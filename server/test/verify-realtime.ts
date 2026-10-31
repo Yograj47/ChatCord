@@ -32,6 +32,7 @@ import { FriendshipsService } from '../src/modules/friendships/friendships.servi
 import { RoomsService } from '../src/modules/rooms/rooms.service';
 import { RedisService } from '../src/modules/redis/redis.service';
 import { AUTH_COOKIE } from '../src/common/constants/auth.constants';
+import type { RedisClientType } from 'redis';
 
 interface Packet {
   _id: string;
@@ -40,6 +41,8 @@ interface Packet {
   content: string;
 }
 interface Ack {
+  users?: { userId: string; online: boolean }[];
+  userIds?: string[];
   ok: boolean;
   error?: string;
   data?: Packet;
@@ -47,6 +50,7 @@ interface Ack {
 const apiBase = 'http://127.0.0.1:4188';
 const browserBase = 'http://chatcord-verify.localhost:4187';
 const sockets: ClientSocket[] = [];
+const timers: ReturnType<typeof setInterval>[] = [];
 function event<T>(socket: ClientSocket, name: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -109,7 +113,7 @@ async function main() {
     '../src/modules/gateway/redis-io.adapter',
   ) as typeof import('../src/modules/gateway/redis-io.adapter');
   let app: INestApplication | undefined;
-  const ids = Array.from({ length: 3 }, () => new Types.ObjectId());
+  const ids = Array.from({ length: 4 }, () => new Types.ObjectId());
   const sessionIds: Types.ObjectId[] = [];
   let stage = 'application initialization';
   try {
@@ -141,11 +145,12 @@ async function main() {
       ids.map((_id, i) => ({
         _id,
         type: UserType.REGISTERED,
-        username: `${prefix}_${['alex', 'sam', 'jordan'][i]}`,
+        username: `${prefix}_${['alex', 'sam', 'jordan', 'riley'][i]}`,
         displayName: [
           'Verification Alex',
           'Verification Sam',
           'Verification Jordan',
+          'Verification Riley',
         ][i],
       })),
     );
@@ -205,7 +210,7 @@ async function main() {
           response.status(404).end();
           return;
         }
-        const identities = ['alex', 'sam', 'jordan'];
+        const identities = ['alex', 'sam', 'jordan', 'riley'];
         const identity = request.query.user ?? 'alex';
         const index =
           typeof identity === 'string' ? identities.indexOf(identity) : -1;
@@ -445,6 +450,114 @@ async function main() {
       },
     );
     assert((await acknowledge(sam, 'join-room', { roomId: dmId })).ok);
+    if (process.argv.includes('--presence')) {
+      stage = 'presence and typing integration';
+      const samId = ids[1].toString();
+      const rileyId = ids[3].toString();
+      const outsider = await connect(tokens[3]);
+      assert((await acknowledge(sam, 'presence-sync', { userIds: [] })).ok);
+      const snapshot = await acknowledge(alex, 'presence-sync', {
+        userIds: [samId, rileyId],
+      });
+      assert.deepEqual(snapshot.users, [{ userId: samId, online: true }]);
+      assert.deepEqual(
+        (
+          await acknowledge(outsider, 'presence-sync', {
+            userIds: [ids[0].toString()],
+          })
+        ).users,
+        [],
+      );
+      assert.equal(
+        (await acknowledge(alex, 'presence-sync', { userIds: ['bad'] })).ok,
+        false,
+      );
+      const otherTab = await connect(tokens[1]);
+      await acknowledge(otherTab, 'presence-sync', { userIds: [] });
+      let leaked = 0;
+      const leak = ({ userId }: { userId: string }) => {
+        if (userId === samId) leaked++;
+      };
+      outsider.on('user-online', leak);
+      outsider.on('user-offline', leak);
+      otherTab.disconnect();
+      assert(
+        (await acknowledge(alex, 'presence-sync', { userIds: [samId] }))
+          .users?.[0].online,
+      );
+      const offline = event<{ userId: string }>(alex, 'user-offline');
+      sam.disconnect();
+      assert.equal((await offline).userId, samId);
+      assert.equal(
+        (await acknowledge(alex, 'presence-sync', { userIds: [samId] }))
+          .users?.[0].online,
+        false,
+      );
+      const online = event<{ userId: string }>(alex, 'user-online');
+      sam = await connect(tokens[1]);
+      assert.equal((await online).userId, samId);
+      assert((await acknowledge(sam, 'join-room', { roomId: dmId })).ok);
+      assert.equal(
+        (await acknowledge(outsider, 'typing-start', { roomId: dmId })).ok,
+        false,
+      );
+      const typing = event<{ userId: string }>(alex, 'user-typing');
+      assert((await acknowledge(sam, 'typing-start', { roomId: dmId })).ok);
+      assert.equal((await typing).userId, samId);
+      assert(
+        (
+          await acknowledge(alex, 'typing-state', { roomId: dmId })
+        ).userIds?.includes(samId),
+      );
+      const secondTab = await connect(tokens[1]);
+      await acknowledge(secondTab, 'join-room', { roomId: dmId });
+      await acknowledge(secondTab, 'typing-start', { roomId: dmId });
+      await acknowledge(sam, 'typing-stop', { roomId: dmId });
+      assert(
+        (
+          await acknowledge(alex, 'typing-state', { roomId: dmId })
+        ).userIds?.includes(samId),
+      );
+      const stopped = event<{ userId: string }>(alex, 'user-stopped-typing');
+      secondTab.disconnect();
+      assert.equal((await stopped).userId, samId);
+      const redis = app.get(RedisService);
+      await redis.setTyping(dmId, samId, 'expired-fixture', -1);
+      assert.equal(await redis.isTyping(dmId, samId), false);
+      await acknowledge(sam, 'typing-start', { roomId: dmId });
+      const left = event<{ userId: string }>(alex, 'user-stopped-typing');
+      await acknowledge(sam, 'leave-room', { roomId: dmId });
+      assert.equal((await left).userId, samId);
+      await acknowledge(sam, 'join-room', { roomId: dmId });
+      await acknowledge(sam, 'typing-start', { roomId: dmId });
+      const sentStop = event<{ userId: string }>(alex, 'user-stopped-typing');
+      assert(
+        (
+          await acknowledge(sam, 'send-message', {
+            roomId: dmId,
+            content: 'Presence typing verification',
+          })
+        ).ok,
+      );
+      assert.equal((await sentStop).userId, samId);
+      outsider.disconnect();
+      for (
+        let retry = 0;
+        retry < 100 && (await redis.getPresence(rileyId)).length;
+        retry++
+      )
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      const rawRedis = app.get<RedisClientType>('REDIS_CLIENT');
+      await rawRedis.zAdd(`presence:v2:user:${rileyId}`, {
+        score: Date.now() - 1,
+        value: 'crashed-fixture',
+      });
+      assert.deepEqual(await redis.getPresence(rileyId), []);
+      assert.equal(leaked, 0);
+      console.log(
+        'PASS: scoped presence snapshots/events, multiple tabs, online/offline/reconnect, expiry, typing snapshots/start/stop, disconnect/leave/send cleanup and outsider rejection',
+      );
+    }
     if (process.argv.includes('--messaging')) {
       stage = 'messaging integration';
       assert((await acknowledge(sam, 'join-room', { roomId: groupId })).ok);
@@ -616,6 +729,32 @@ async function main() {
       );
     }
     if (process.argv.includes('--serve')) {
+      if (process.argv.includes('--presence')) {
+        timers.push(
+          setInterval(() => {
+            if (sam.connected)
+              void acknowledge(sam, 'presence-sync', { userIds: [] });
+          }, 20000),
+        );
+        // Echo the browser's transient typing state from its temporary peer.
+        sam.on(
+          'user-typing',
+          ({ roomId, userId }: { roomId: string; userId: string }) => {
+            if (roomId === dmId && userId === ids[0].toString())
+              void acknowledge(sam, 'typing-start', { roomId: dmId });
+          },
+        );
+        sam.on(
+          'user-stopped-typing',
+          ({ roomId, userId }: { roomId: string; userId: string }) => {
+            if (roomId === dmId && userId === ids[0].toString())
+              void acknowledge(sam, 'typing-stop', { roomId: dmId });
+          },
+        );
+        console.log(
+          'Presence fixture: Sam stays online; typing in his DM produces a real peer typing echo.',
+        );
+      }
       if (process.argv.includes('--social')) {
         const invitationRoom = await roomService.createRoom(ids[0].toString(), {
           type: RoomType.GROUP,
@@ -659,7 +798,15 @@ async function main() {
       );
       await new Promise<void>((resolve) => {
         const input = (chunk: string | Buffer) => {
-          if (chunk.toString().trim() === 'stop') stop();
+          const command = chunk.toString().trim();
+          if (command === 'stop') stop();
+          if (command === 'peer-offline') sam.disconnect();
+          if (command === 'peer-online' && !sam.connected) {
+            sam.once('connect', () => {
+              void acknowledge(sam, 'join-room', { roomId: dmId });
+            });
+            sam.connect();
+          }
         };
         const stop = () => {
           clearTimeout(timer);
@@ -680,6 +827,7 @@ async function main() {
     if (error instanceof Error) console.error(`Failure type: ${error.name}`);
     process.exitCode = 1;
   } finally {
+    timers.forEach(clearInterval);
     for (const socket of sockets) socket.disconnect();
     if (app) {
       try {
@@ -701,10 +849,18 @@ async function main() {
         await app
           .get<Model<User>>(getModelToken(User.name))
           .deleteMany({ _id: { $in: ids } });
-        for (const id of ids)
+        for (const id of ids) {
           await app
             .get(RedisService)
             .deleteCache(`presence:user:${id.toString()}`);
+          await app
+            .get(RedisService)
+            .deleteCache(`presence:v2:user:${id.toString()}`);
+        }
+        for (const room of owned)
+          await app
+            .get(RedisService)
+            .deleteCache(`typing:v2:${room._id.toString()}`);
         console.log('Removed isolated realtime verification records.');
       } finally {
         await app.close();
