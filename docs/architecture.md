@@ -50,52 +50,47 @@ The client uses React, TypeScript, Vite, React Router, Tailwind CSS, shadcn/ui c
 
 ```text
 client/src/
-├── api/                    Typed auth, room, social, message, and realtime APIs
-├── components/
-│   ├── auth/               Sign-in controls and auth errors
-│   ├── chat/               Conversation, messages, search, replies, and composers
-│   ├── common/             Shared controls, skeletons, and presence badges
-│   ├── header/             Workspace header elements
-│   ├── layout/             Header/sidebar and remaining layout components
-│   ├── modals/             Workspace and room dialogs
-│   ├── rooms/              Room forms and member/permission controls
-│   ├── sidebar/            Room/DM navigation and profile controls
-│   └── ui/                 UI primitives
-├── hooks/                  Queries, mutations, connection/presence/typing, UI hooks
-├── layouts/                Auth, onboarding, and workspace shells
-├── lib/                    Axios/socket clients, QueryClient, toast and utilities
-├── pages/                  Auth and workspace pages
-├── routes/                 Route definitions and session/onboarding gates
-├── stores/                 Zustand UI state and a legacy auth store
-├── types/                  Auth, room, message, and realtime contracts
-├── App.tsx
-├── main.tsx
-└── index.css
+├── app/                    Router, providers/shell, layouts, sidebar/header, theme
+├── features/
+│   ├── auth/               Session reads/actions, user search, schemas and contracts
+│   ├── friendships/        Relationship queries/actions and social views
+│   ├── rooms/              Room/DM APIs, cache keys, forms, membership and invitations
+│   ├── messaging/          Message APIs/keys, history/actions, connection orchestration, UI
+│   └── realtime/           Socket transport/lifecycle, presence and typing
+├── pages/                  Thin route screens and auth forms
+├── shared/                 Domain-independent HTTP/errors, UI, hooks, layout preferences
+├── styles/index.css        Tailwind and semantic tokens
+└── main.tsx                Application bootstrap
 ```
 
-The implemented layout uses `api/`; it does not currently use the previously proposed `features/` or `services/` directories. A future reorganization should be an explicit refactor rather than an assumption in this document.
+Internal source imports use the single `@/` alias. Components use PascalCase filenames; hooks use `useX.ts`; other modules use descriptive kebab-case names/suffixes. Generated UI files retain their lowercase convention. Schemas live alongside feature types, rather than inside transport contracts. UI-library generation aliases point at the actual shared paths.
 
 ### Data and state boundaries
 
 | Layer | Responsibility |
 | --- | --- |
-| `lib/api.ts`, `lib/socket.ts` | Shared credentialed transports and socket URL normalization |
-| `api/*.api.ts` | Typed HTTP calls and socket request/acknowledgement wrappers |
-| `types/` | Transport DTOs, responses, and message presentation types |
-| TanStack Query/hooks | Server state, pagination, mutations, invalidation, and presence snapshots |
-| Zustand stores | Selection/navigation, theme/layout, modal, and temporary composer state |
-| Component state | Local input, dialog confirmation, and transient presentation state |
-| Socket listeners | Notify or refresh server-state queries and manage transient typing state |
+| `shared/api/http-client.ts` | Credentialed HTTP transport |
+| Feature `api/` | Typed endpoints, canonical query keys and cache helpers |
+| Feature `types/`, `schemas/` | Wire/view contracts and form validation |
+| Feature hooks/controllers | Session queries, mutations, paging, invalidation, transient workflow state |
+| Route URL | Selected room, DM and deep-linked thread |
+| Zustand | Modal/layout/theme preferences and active draft reply; no duplicate session or selected-room store |
+| Components | Rendering, local fields and user interaction |
+| `useConversationConnection` | Join/leave, reconnect, matching-room cache events and access revocation |
 
-`useAuth` and its Query cache are the active session source. The unused `auth.store.ts` is legacy code, not a second active authentication authority. Some Friends, Invitations, sidebar, and room-member queries/mutations remain inside components; extraction into dedicated hooks is incomplete.
+`useSession` and React Query own session reads; `useAuth` adds sign-in/onboarding/logout actions. Logout disconnects transport and clears prior-user caches. The legacy auth store, unused thread/selection state, unreferenced thread/route/header scaffolding and fake header presence have been removed.
+
+Room creation/update hooks do not subscribe to the room list. Room/invitation screens share canonical room-list and membership keys. Message history/search/replies read shared queries; one mounted conversation owns their socket invalidation subscription. Registered-only queries are disabled for guests where those screens mount in the shared shell. Backend authorization remains authoritative.
+
+Feature modules cannot import app/pages; shared modules cannot import features/app/pages. ESLint enforces those layers and selected type-aware promise rules. `check:architecture` also checks aliases, unresolved static imports and cycles. Cross-feature references are explicit, without broad barrel exports.
 
 ### Navigation and connection ownership
 
 Routes include sign-in (`/`), OAuth callback, username onboarding, the `/app` workspace, Friends, Invitations, rooms, DMs, and room reply deep links. Client route gates handle session and onboarding UX; backend guards remain authoritative.
 
-`AppLayout` owns the registered user's socket connection. Conversation components subscribe/unsubscribe to room events without recreating that connection. Guests can enter the workspace shell but cannot use registered-only social, room/message, or realtime APIs.
+`AppLayout` owns the registered user's socket connection. The conversation connection hook subscribes/unsubscribes to room events without recreating that connection. Guests can enter the workspace shell but cannot use registered-only social, room/message, or realtime APIs.
 
-Messages use bounded infinite queries and backend IDs. Events invalidate room/user-scoped history, search, replies, and quote queries. Rejoining refreshes persisted state. A composer clears its draft only after acknowledged delivery; failed sends retain it. Reply deep links use the real replies view, not the legacy synthetic thread panel.
+Messages use bounded infinite queries and backend IDs. Events invalidate room/user-scoped history, search, replies, and quote queries. Rejoining refreshes persisted state. A composer clears its draft only after acknowledged delivery; failed sends retain it. Reply deep links use the real replies view. Workspace search filters real room/DM lists and navigates to the result; message-text search remains scoped to the conversation. Route screens load lazily behind Suspense and an error boundary.
 
 ## Backend
 
@@ -147,7 +142,7 @@ There are no separate `ReactionsModule` or `PresenceModule`: reactions belong to
 
 RoomEventsService and MessageEventsService decouple service mutations from gateway publishing. Gateway binds the relays and broadcasts to the appropriate socket rooms through the Redis adapter. These callbacks are not a durable event queue or transactional outbox.
 
-The socket handler class is RealtimeGateway. MessageEventsService is a required injected dependency; its module owns the provider. Message creation and typing share the send-permission rule in RoomsService. See [code quality review](code-quality.md) for readability/naming changes and remaining responsibility boundaries.
+The socket handler class is RealtimeGateway. MessageEventsService is a required injected dependency; its module owns the provider. Message creation and typing share the send-permission rule in RoomsService.
 
 ## Persistent and transient data
 
@@ -249,15 +244,15 @@ The default backend Jest suite is controller-only. Specs under `server/test/cont
 
 The opt-in `npm run test:integration` suite under `server/test/integration` boots the actual AppModule with MongoDB and Redis. HTTP workflows exercise real services, guards and persistence, including concurrency and authorization. Each run uses a uniquely generated temporary MongoDB database and drops it in teardown. Registered identities are seeded; external Google login is excluded. It runs separately from the controller-only default suite.
 
-See [backend tests](../server/test/README.md) for layout, configuration, cleanup and scope. Prior feature validations included real MongoDB/Redis/Socket.IO and browser checks; they are historical evidence, not part of the default test run. The separate opt-in `verify-*.ts` utilities remain under `server/test`, create isolated fixture records, and clean up their own data. Frontend fixtures are not a comprehensive automated frontend suite.
+See [backend tests](../server/test/README.md) for layout, configuration, cleanup and scope. Prior feature validations included real MongoDB/Redis/Socket.IO and browser checks; they are historical evidence, not part of the default test run. The separate opt-in `verify-*.ts` utilities remain under `server/test`, create isolated fixture records, and clean up their own data. The frontend has a separate Vitest/Testing Library suite (39 behavior tests across seven files), strict source/test checks, formatting and layer checks. Browser fixtures remain supplemental, not a comprehensive end-to-end suite. See [frontend verification](../client/test/README.md).
 
 Known limitations and follow-up work:
 
 - The default controller suite runs without MongoDB/Redis/Google or frontend dependencies. The separate API integration suite requires live MongoDB and Redis. The realtime harness still imports Socket.IO Client from `client/node_modules`; automated browser coverage remains unfinished.
-- Comprehensive CI, frontend regression automation, full-stack containers, deployment, structured logging, and monitoring remain unfinished. Redis-only Compose configuration exists; this is not production deployment readiness.
+- CI execution of the new frontend regression suite, full-stack containers, deployment, structured logging, and monitoring remain unfinished. Redis-only Compose configuration exists; this is not production deployment readiness.
 - The Redis adapter supports cross-instance operations, but multi-instance failover/load behavior has not been verified. Polling deployments need an appropriate connection-routing strategy; Redis pub/sub is not durable event delivery.
-- Legacy unused components/stores and synthetic global workspace search/header elements remain. Conversation message search is real; global search is still a placeholder.
-- UI, folder naming/organization, and consistent query/mutation hook extraction are deferred. These are cleanup tasks, not evidence of additional implemented modules.
+- Workspace search covers real room/DM names; cross-conversation message-text search is not implemented. Clearly labelled future pinned-space/media features remain outside this cleanup.
+- Frontend findings F1–F11 have been addressed; further visual refinement and broader browser/screen-reader coverage remain separate work. See [frontend cleanup](frontend-cleanup-log.md).
 - Uploads/attachments, notifications/unread delivery, ownership transfer, and additional identity providers are not implemented end to end.
 
 ## Workflow and documentation ownership

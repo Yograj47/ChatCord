@@ -1,0 +1,38 @@
+import { AppRouter } from '@/app/routes';
+import { useThemeStore } from '@/app/stores/theme.store';
+import React, { useEffect } from 'react';
+import { Toaster } from 'sonner';
+
+export const App: React.FC = () => {
+  const theme = useThemeStore((state) => state.theme);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+  }, [theme]);
+
+  return (
+    <>
+      <AppRouter />
+      <Toaster
+        position="bottom-right"
+        theme="dark"
+        closeButton
+        toastOptions={{
+          className: 'font-sans text-xs',
+        }}
+      />
+    </>
+  );
+};
+
+export default App;
