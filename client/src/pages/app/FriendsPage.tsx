@@ -2,15 +2,16 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
+import { getApiErrorMessage } from "../../lib/api-error";
 import { Search, Users, UserPlus, ArrowRight, RefreshCw } from "lucide-react";
 import { socialApi, type PublicUser } from "../../api/social.api";
 import { useAuth } from "../../hooks/useAuth";
 import { useLayoutStore } from "../../stores/layout.store";
 import { useAppStore } from "../../stores/app.store";
 import { showError, showSuccess } from "../../lib/toast";
-import { usePresence } from '../../hooks/usePresence';
-import { PresenceBadge } from '../../components/common/PresenceBadge';
-import type { PresenceStatus } from '../../types/realtime';
+import { usePresence } from "../../hooks/usePresence";
+import { PresenceBadge } from "../../components/common/PresenceBadge";
+import type { PresenceStatus } from "../../types/realtime";
 
 type View = "friends" | "requests" | "search";
 type Action = {
@@ -24,11 +25,11 @@ function errorMessage(error: unknown): string {
   if (isAxiosError<{ message?: string | string[] }>(error)) {
     if (error.response?.status === 401)
       return "Your session expired. Sign in again to manage friends.";
-    const message = error.response?.data?.message;
-    if (typeof message === "string") return message;
-    if (Array.isArray(message)) return message.join(" ");
   }
-  return "Could not complete this action. Check your connection and try again.";
+  return getApiErrorMessage(
+    error,
+    "Could not complete this action. Check your connection and try again.",
+  );
 }
 
 function PersonRow({
@@ -77,7 +78,18 @@ export function FriendsPage() {
           Sign in with Google to find people, manage friend requests, and start
           conversations.
         </p>
-        <button type="button" disabled={isLogoutPending} onClick={() => { void logout().then(() => navigate('/', { replace: true })).catch((error: unknown) => showError(errorMessage(error))); }} className={`${actionStyle} mt-6 inline-block`}>End guest session and sign in</button>
+        <button
+          type="button"
+          disabled={isLogoutPending}
+          onClick={() => {
+            void logout()
+              .then(() => navigate("/", { replace: true }))
+              .catch((error: unknown) => showError(errorMessage(error)));
+          }}
+          className={`${actionStyle} mt-6 inline-block`}
+        >
+          End guest session and sign in
+        </button>
         <Link to="/app" className={`${actionStyle} ml-2 mt-6 inline-block`}>
           Back to workspace
         </Link>
@@ -116,7 +128,9 @@ function RegisteredFriends({ userId }: { userId: string }) {
     queryFn: socialApi.requests,
     refetchInterval: 30000,
   });
-  const presence = usePresence((friends.data ?? []).map(friend => friend.user._id));
+  const presence = usePresence(
+    (friends.data ?? []).map((friend) => friend.user._id),
+  );
   const search = useQuery({
     queryKey: ["user-search", userId, debounced],
     queryFn: ({ signal }) => socialApi.searchUsers(debounced, signal),
@@ -343,7 +357,11 @@ function RegisteredFriends({ userId }: { userId: string }) {
             )}
             <ul aria-label="Your friends" className="space-y-3">
               {friends.data?.map(({ id, user }) => (
-                <PersonRow key={id} user={user} presenceStatus={presence.status(user._id)}>
+                <PersonRow
+                  key={id}
+                  user={user}
+                  presenceStatus={presence.status(user._id)}
+                >
                   {removeId === id ? (
                     <>
                       <span className="basis-full text-xs text-zinc-400">

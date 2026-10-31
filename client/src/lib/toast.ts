@@ -8,7 +8,7 @@ import {
     Loader2,
 } from 'lucide-react';
 
-// Custom base layout for ChatCord toasts
+
 const baseStyle: React.CSSProperties = {
     background: '#111319',
     border: '1px solid rgba(39, 39, 42, 0.8)',
@@ -59,7 +59,7 @@ export const toast = {
     promise: sonner.promise,
 };
 
-// Quick helper functions
+
 export const showSuccess = (message: string, options?: ExternalToast) => toast.success(message, options);
 export const showError = (message: string, options?: ExternalToast) => toast.error(message, options);
 export const showInfo = (message: string, options?: ExternalToast) => toast.info(message, options);

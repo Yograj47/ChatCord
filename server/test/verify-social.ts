@@ -37,6 +37,7 @@ import { FriendshipsController } from '../src/modules/friendships/friendships.co
 import { RedisService } from '../src/modules/redis/redis.service';
 import { MessageSchema } from '../src/modules/messages/schemas/message.schema';
 import { MessagesService } from '../src/modules/messages/messages.service';
+import { MessageEventsService } from '../src/modules/messages/message-events.service';
 import { MessagesController } from '../src/modules/messages/messages.controller';
 
 async function main() {
@@ -137,6 +138,7 @@ async function main() {
               typeof MessagesService
             >[0],
             roomService,
+            new MessageEventsService(),
           ),
         },
       ],

@@ -15,7 +15,7 @@ export const CreateRoomModal: React.FC = () => {
             const newRoom = await createRoom(payload);
             setActiveRoomId(newRoom._id);
             setCreateRoomOpen(false);
-        } catch (err) {
+        } catch {
             // Error handled by toast in useRooms mutation
         }
     };

@@ -24,12 +24,12 @@ export const Modal: React.FC<ModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-            {/* Immersive Card Frame */}
+
             <div className={`relative w-full ${maxWidth} bg-[#111319] border border-zinc-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl overflow-hidden`}>
-                {/* Background Glow Accent */}
+
                 <div className="absolute -top-20 -right-20 w-48 h-48 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
-                {/* Header */}
+
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800/80">
                     <div className="flex items-center space-x-3">
                         {icon && (
@@ -56,7 +56,7 @@ export const Modal: React.FC<ModalProps> = ({
                     </button>
                 </div>
 
-                {/* Modal Body / Children */}
+
                 {children}
             </div>
         </div>

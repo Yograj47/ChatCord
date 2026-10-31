@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { isAxiosError } from "axios";
+import { getApiErrorMessage } from "../../lib/api-error";
 import { X, Users, Shield } from "lucide-react";
 import { roomsApi } from "../../api/room.api";
 import { ROOM_QUERY_KEYS } from "../../hooks/useRoom";
 import { useAppStore } from "../../stores/app.store";
 import { showSuccess } from "../../lib/toast";
 import type { Room, RoomMemberRole } from "../../types/room";
-import { usePresence } from '../../hooks/usePresence';
-import { PresenceBadge } from '../common/PresenceBadge';
+import { usePresence } from "../../hooks/usePresence";
+import { PresenceBadge } from "../common/PresenceBadge";
 
 const control =
   "rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs text-zinc-200 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-indigo-400 disabled:opacity-40";
@@ -37,7 +37,9 @@ export function RoomMembersDialog({
   const navigate = useNavigate();
   const setActiveRoomId = useAppStore((state) => state.setActiveRoomId);
   const isMember = room.members.some((member) => member.userId === userId);
-  const presence = usePresence(isMember ? room.members.map(member => member.userId) : []);
+  const presence = usePresence(
+    isMember ? room.members.map((member) => member.userId) : [],
+  );
   const members = useQuery({
     queryKey: ["room-members", room._id, userId],
     queryFn: () => roomsApi.getMembers(room._id),
@@ -115,9 +117,10 @@ export function RoomMembersDialog({
       void refresh();
     },
   });
-  const failure = isAxiosError<{ message?: string }>(action.error)
-    ? action.error.response?.data?.message
-    : undefined;
+  const failure = getApiErrorMessage(
+    action.error,
+    "Could not update room permissions.",
+  );
   return (
     <dialog
       aria-labelledby="members-heading"
@@ -130,7 +133,10 @@ export function RoomMembersDialog({
     >
       <div className="mb-5 flex items-center justify-between gap-3 border-b border-zinc-800 pb-4">
         <div>
-          <h2 id="members-heading" className="flex items-center gap-2 text-base font-semibold">
+          <h2
+            id="members-heading"
+            className="flex items-center gap-2 text-base font-semibold"
+          >
             <Users className="h-5 w-5 text-indigo-400" aria-hidden="true" />
             Members & permissions
           </h2>
@@ -150,9 +156,7 @@ export function RoomMembersDialog({
       </div>
       {action.isError && (
         <p role="alert" className="mb-4 text-sm text-rose-300">
-          {typeof failure === "string"
-            ? failure
-            : "Could not update this room. Permissions may have changed; refresh and try again."}
+          {failure}
         </p>
       )}
       {!isMember ? (

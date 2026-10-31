@@ -23,7 +23,7 @@ Client contracts live in `types/realtime.ts`, socket requests in `api/realtime.a
 
 ## Verification
 
-The backend suite passes 136 tests across 15 suites, including snapshot authorization/validation, room subscription and text restrictions, multiple tabs, disconnect cleanup, and reconnect ordering. Production builds, TypeScript and changed-file lint pass.
+At feature validation, the previous backend suite passed 136 tests across 15 suites, including presence/typing checks. Those colocated specs were subsequently removed when the default suite changed to [controller-only testing](../server/test/README.md). The opt-in live presence/typing verification below remains available. Production builds, TypeScript and changed-file lint passed during feature validation.
 
 Browser checks on 2026-10-31 confirmed Friends, sidebar, DM header and member-list presence, peer offline/online transitions, and a real peer typing indicator that disappears after inactivity. Both live runs cleaned up their isolated records and exited successfully; temporary servers were stopped.
 

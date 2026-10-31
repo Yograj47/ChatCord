@@ -2,13 +2,11 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 import { RoomsService } from '../rooms/rooms.service';
-import { RoomCapability } from '../rooms/schemas/room.schema';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { Message, MessageDocument } from './schemas/message.schema';
@@ -21,8 +19,7 @@ export class MessagesService {
     @InjectModel(Message.name)
     private readonly messageModel: Model<MessageDocument>,
     private readonly roomsService: RoomsService,
-    @Optional()
-    private readonly events: MessageEventsService = new MessageEventsService(),
+    private readonly events: MessageEventsService,
   ) {}
 
   async createMessage(
@@ -32,14 +29,7 @@ export class MessagesService {
   ): Promise<MessageDocument> {
     const room = await this.roomsService.findById(roomId);
 
-    await this.assertMembership(roomId, senderId);
     await this.roomsService.assertCanSend(room, senderId);
-
-    if (!room.capabilities.includes(RoomCapability.TEXT)) {
-      throw new ForbiddenException(
-        'Text messages are not enabled for this room.',
-      );
-    }
 
     if (dto.replyTo) {
       const parent = await this.findMessage(roomId, dto.replyTo);

@@ -49,7 +49,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         isMobileActive ? "bg-zinc-800/60" : "hover:bg-zinc-900/50"
       }`}
     >
-      {/* Backdrop overlay to dismiss mobile menu when tapping outside */}
+
       {isMobileActive && (
         <div
           className="fixed inset-0 z-20 sm:hidden"
@@ -60,7 +60,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
 
-      {/* Sender Avatar */}
+
       <div
         className={`w-8 h-8 rounded-full ${
           message.senderAvatarBg || "bg-indigo-600"
@@ -69,7 +69,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         {message.senderInitials}
       </div>
 
-      {/* Main Content Area */}
+
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline space-x-2">
           <span className="text-xs font-semibold text-zinc-200 hover:underline cursor-pointer">
@@ -85,7 +85,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           )}
         </div>
 
-        {/* Quoted Reply Box */}
+
         {message.replyingTo && (
           <div className="flex items-center space-x-1.5 mt-1 mb-1 px-2.5 py-1 bg-zinc-800/40 border-l-2 border-indigo-500 rounded-r text-[11px] text-zinc-400 max-w-xl truncate">
             <CornerDownRight className="h-3 w-3 text-indigo-400 shrink-0" />
@@ -98,7 +98,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {/* Message Body */}
+
         {message.replyToId && message.roomId && message.viewerId && (
           <MessageQuote
             roomId={message.roomId}
@@ -113,7 +113,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           <span className="text-[10px] text-zinc-500">edited</span>
         )}
 
-        {/* Reactions List */}
+
         {message.reactions && message.reactions.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
             {message.reactions.map((reaction, idx) => (
@@ -136,7 +136,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         )}
 
-        {/* Thread Replies Button */}
+
         {message.replyCount && message.replyCount > 0 ? (
           <button
             type="button"
@@ -157,7 +157,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         ) : null}
       </div>
 
-      {/* Action Toolbar */}
+
       <MessageActions
         message={message}
         isMobileActive={isMobileActive}

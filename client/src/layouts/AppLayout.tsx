@@ -15,7 +15,7 @@ export const AppLayout: React.FC = () => {
 
     return (
         <div className="h-dvh w-vw max-h-dvh max-w-vw bg-[#0a0b0e] text-zinc-100 flex overflow-hidden font-sans antialiased selection:bg-indigo-500/30">
-            {/* 1. Sidebar Container: Hidden on mobile when inside a focused chat */}
+
             <div
                 className={`
           h-full shrink-0
@@ -25,17 +25,17 @@ export const AppLayout: React.FC = () => {
                 <Sidebar />
             </div>
 
-            {/* 2. Main Right Column (Header + Chat Content) */}
+
             <div
                 className={`
           flex-1 flex flex-col min-w-0 h-full max-h-full overflow-hidden
           ${mobileView === 'sidebar' ? 'hidden min-[900px]:flex' : 'flex'}
         `}
             >
-                {/* Header (Shows on mobile when viewing chat or on desktop) */}
+
                 <Header />
 
-                {/* Workspace Viewport Container */}
+
                 <div className="flex-1 flex min-h-0 h-full overflow-hidden relative">
                     <main className="flex-1 flex flex-col bg-[#0a0b0e] min-w-0 h-full overflow-hidden relative">
                         <Outlet />
@@ -44,7 +44,7 @@ export const AppLayout: React.FC = () => {
                 </div>
             </div>
 
-            {/* 3. Global Overlapping Modals */}
+
             <GlobalSearchModal />
             <CreateRoomModal /> 
         </div>

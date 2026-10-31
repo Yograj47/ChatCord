@@ -33,7 +33,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [sending, setSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-adjust textarea height up to ~5 lines before enabling inner scrolling
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -86,7 +86,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   return (
     <div className="p-3 bg-[#0d0f14]/80 backdrop-blur-md border-t border-zinc-800/80 shrink-0">
       {disabledReason && <p id="message-unavailable-reason" className="mb-2 text-xs text-zinc-400">{disabledReason}</p>}
-      {/* Active Reply Banner */}
+
       {replyingTo && (
         <div className="flex items-center justify-between bg-[#151821]/80 border-t border-x border-zinc-800 px-3 py-1.5 rounded-t-xl text-xs">
           <div className="flex items-center space-x-2 text-zinc-400 truncate min-w-0">
@@ -109,7 +109,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         </div>
       )}
 
-      {/* Composer Form Area */}
+
       <form onSubmit={handleSend} className="relative flex items-center">
         <button
           type="button"
@@ -119,7 +119,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           <Paperclip className="h-4 w-4" />
         </button>
 
-        {/* Multi-line auto-wrapping text input without browser resize handle */}
+
         <textarea
           aria-label="Message"
           aria-describedby={disabledReason ? 'message-unavailable-reason' : undefined}

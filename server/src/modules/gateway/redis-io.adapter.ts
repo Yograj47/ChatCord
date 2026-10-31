@@ -28,7 +28,6 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   override createIOServer(port: number, options?: ServerOptions): Server {
-    // Explicitly cast to Server to satisfy strict TypeScript rules & ESLint
     const server = super.createIOServer(port, options) as Server;
 
     server.adapter(this.adapterConstructor);

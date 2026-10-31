@@ -18,8 +18,8 @@ const REDIS_CLIENT = 'REDIS_CLIENT';
       },
     },
     RedisService,
-    RateLimitService
+    RateLimitService,
   ],
   exports: [REDIS_CLIENT, RedisService, RateLimitService],
 })
-export class RedisModule { }
+export class RedisModule {}

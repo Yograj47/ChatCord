@@ -40,7 +40,7 @@ export const Sidebar: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeDmId, setActiveDmId] = useState<string | undefined>(undefined);
 
-    // Map backend rooms to RoomItem shape & filter by search query
+
     const roomItems: RoomItem[] = backendRooms
         .filter((r) => r.type === 'group')
         .map((r) => ({

@@ -25,6 +25,14 @@ import { RoomEventsService } from './room-events.service';
 
 @Injectable()
 export class RoomsService {
+  constructor(
+    @InjectModel(Room.name) private readonly roomModel: Model<RoomDocument>,
+    private readonly redisService: RedisService,
+    private readonly usersService: UsersService,
+    private readonly friendships: FriendshipsService,
+    private readonly roomEvents: RoomEventsService,
+  ) {}
+
   async presencePeers(userId: string): Promise<string[]> {
     const rooms = await this.findAllForUser(userId);
     const friends = await this.friendships.friends(userId);
@@ -47,22 +55,18 @@ export class RoomsService {
     const byId = new Map(
       profiles.map((profile) => [profile._id.toString(), profile]),
     );
-    return room.members.map((member) => ({
-      id: member.userId.toString(),
-      username: byId.get(member.userId.toString())?.username,
-      displayName:
-        byId.get(member.userId.toString())?.displayName ?? 'Deleted user',
-      role: member.role,
-      joinedAt: member.joinedAt,
-    }));
+    return room.members.map((member) => {
+      const memberId = member.userId.toString();
+      const profile = byId.get(memberId);
+      return {
+        id: memberId,
+        username: profile?.username,
+        displayName: profile?.displayName ?? 'Deleted user',
+        role: member.role,
+        joinedAt: member.joinedAt,
+      };
+    });
   }
-  constructor(
-    @InjectModel(Room.name) private readonly roomModel: Model<RoomDocument>,
-    private readonly redisService: RedisService,
-    private readonly usersService: UsersService,
-    private readonly friendships: FriendshipsService,
-    private readonly roomEvents: RoomEventsService,
-  ) {}
 
   private id(value: string) {
     if (typeof value !== 'string' || !/^[a-f\d]{24}$/i.test(value))
@@ -559,6 +563,11 @@ export class RoomsService {
       if (room.members.length !== 2 || !other)
         throw new ForbiddenException('Invalid DM membership.');
       await this.friendships.assertFriends(userId, other.userId.toString());
+    }
+    if (!room.capabilities.includes(RoomCapability.TEXT)) {
+      throw new ForbiddenException(
+        'Text messages are not enabled for this room.',
+      );
     }
   }
 }

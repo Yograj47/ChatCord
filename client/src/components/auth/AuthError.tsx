@@ -24,7 +24,7 @@ export const AuthError: React.FC<AuthErrorProps> = ({
         {message}
       </p>
 
-      {/* Recovery Actions */}
+
       <div className="w-full mt-6 space-y-2.5">
         {onRetry && (
           <button

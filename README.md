@@ -10,11 +10,11 @@ The goal is to rebuild ChatCord into a production-oriented application demonstra
 
 🚧 **In Development**
 
-Current milestone: **Real-Time Integration — complete**
+Current milestone: **Backend Controller Testing**
 
-Current task: **Online presence and typing indicators integrated and verified**
+Current task: **Readability, naming, comments, and shared-policy cleanup**
 
-Social, messaging, and real-time integration are implemented. Online presence now uses scoped snapshots, live events, and per-tab Redis leases. Main and replies composers send real typing signals with idle/blur/send cleanup. Real MongoDB/Redis/Socket.IO and browser checks passed. All 136 backend tests pass. Broader application testing and deployment remain in progress; UI and folder-structure cleanup are deferred.
+Social, messaging, and real-time integration are implemented and previously passed live verification. Backend tests now live under `server/test/controllers` and focus on HTTP controller contracts with mocked services. Service/gateway unit specs have been removed from production modules. Broader integration/end-to-end testing and deployment remain in progress; UI and folder-structure cleanup are deferred.
 
 ---
 
@@ -249,6 +249,10 @@ See [presence and typing](docs/presence-typing.md) for socket contracts, lease e
 
 ## Testing
 
+Readability cleanup: redundant/commented-out source comments removed; API error parsing and message-producing permissions centralized; DTOs separated from controllers; filename casing and RealtimeGateway naming corrected. See [code quality review](docs/code-quality.md) for the DRY/SOLID assessment and remaining structural work.
+
+The default backend suite now contains controller HTTP tests only, centralized under `server/test/controllers`. All 128 tests across six suites pass, with 98.9% controller line coverage. Build, TypeScript and changed-file lint checks pass. All colocated specs and the obsolete E2E scaffold were removed. Services and external providers are mocked; controller routes, validation, session identity, responses, cookies/redirects, and error propagation are covered. The separate opt-in live verification scripts remain available. See [backend controller tests](server/test/README.md) for commands and scope. Earlier feature validation counts below refer to the previous test layout.
+
 Real-time validation (2026-10-31): 136 tests across 15 suites passed. Backend/frontend production builds, TypeScript and changed-file lint passed. Live MongoDB/Redis/Socket.IO checks passed scoped presence, multi-tab online/offline transitions, reconnect, lease expiry, typing snapshots, stop/disconnect/leave/send cleanup, and outsider rejection. Browser checks confirmed real Friends/sidebar/DM/member status, offline-to-online transitions on reconnect, and a peer typing indicator that clears after inactivity. The harness exited successfully and removed its isolated records; temporary servers were stopped.
 
 Messaging validation (2026-10-31): 129 tests across 14 suites passed. Backend/frontend production builds, TypeScript, and changed-file lint passed. Live message API and Socket.IO tests passed author-only edits/deletion, cursor boundaries, search scoping, reply persistence, idempotent reactions, and deletion placeholders. Browser checks passed sending, searching, editing, reaction changes, both reply workflows, reload persistence, confirmed deletion, deleted-parent quotes, and older-page loading. User manual testing passed. UI and folder-structure cleanup are deferred.
@@ -265,10 +269,10 @@ The 2026-10-30 live verification completed with exit code 0 and removed its temp
 
 Repeat the search check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-user-search.ts`. It uses the configured database and creates isolated temporary records; unrelated authentication services are stubbed, so this does not verify Google login or the full running application.
 
-Repeat the social check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts`. Previously deferred username expectations and outdated room mocks have been updated for onboarding and atomic membership operations; the full unit suite now passes.
+Repeat the separate live social check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts`. It is not part of the controller-only Jest suite.
 
-- [x] Backend test suite (136 passing, including social, messaging, presence and typing tests)
-- [ ] API integration tests
+- [x] Backend controller HTTP test suite (128 passing across six suites in server/test/controllers)
+- [ ] Full API integration tests with real persistence
 - [x] Live DM Socket.IO integration checks (MongoDB and Redis)
 - [ ] Frontend tests
 - [ ] End-to-end tests

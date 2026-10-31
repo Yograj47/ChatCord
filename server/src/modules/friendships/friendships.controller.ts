@@ -9,7 +9,6 @@ import {
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { IsMongoId } from 'class-validator';
 import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -18,10 +17,7 @@ import { SessionGuard } from '../auth/guards/session.guard';
 import { UserType } from '../users/schemas/user.schema';
 import { FriendshipsService } from './friendships.service';
 
-export class SendFriendRequestDto {
-  @IsMongoId()
-  recipientId!: string;
-}
+import { SendFriendRequestDto } from './dto/send-friend-request.dto';
 
 interface SessionUser {
   id?: string;

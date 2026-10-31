@@ -5,7 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
+import { getApiErrorMessage } from "../lib/api-error";
 import { messagesApi } from "../api/message.api";
 import { socket } from "../lib/socket";
 import { showError } from "../lib/toast";
@@ -90,16 +90,11 @@ export function useMessageMutations(roomId: string, userId: string) {
       queryKey: MESSAGE_QUERY_KEYS.room(roomId, userId),
     });
   const onError = (error: unknown) => {
-    const message = isAxiosError<{ message?: string | string[] }>(error)
-      ? error.response?.data?.message
-      : undefined;
     showError(
-      Array.isArray(message)
-        ? message.join(" ")
-        : (message ??
-            (error instanceof Error
-              ? error.message
-              : "Message action failed.")),
+      getApiErrorMessage(
+        error,
+        error instanceof Error ? error.message : "Message action failed.",
+      ),
     );
   };
   const send = useMutation({

@@ -57,7 +57,7 @@ type GatewaySocket = Socket<
   Record<string, unknown>, // 1. ListenEvents (prevents 'any' lint errors)
   GatewayServerToClientEvents, // 2. EmitEvents (Server -> Client)
   Record<string, never>, // 3. InterServerEvents
-  GatewaySocketData // 4. SocketData
+  GatewaySocketData
 >;
 
 @WebSocketGateway({
@@ -77,7 +77,7 @@ type GatewaySocket = Socket<
 )
 @UseGuards(SocketSessionGuard)
 @UseFilters(GatewayExceptionFilter)
-export class GatewayGateway
+export class RealtimeGateway
   implements
     OnGatewayConnection,
     OnGatewayDisconnect,
@@ -354,8 +354,6 @@ export class GatewayGateway
     );
     await this.stopTyping(client, data.roomId);
 
-    // Include the sender's other tabs, and deduplicate by message ID in clients.
-
     return {
       ok: true,
       data: message,
@@ -379,12 +377,6 @@ export class GatewayGateway
       throw new WsException('Join the room first.');
     const room = await this.roomsService.findById(data.roomId);
     await this.roomsService.assertCanSend(room, userId);
-    if (
-      !room.capabilities.includes(
-        'text' as import('../rooms/schemas/room.schema').RoomCapability,
-      )
-    )
-      throw new WsException('Text messages are disabled.');
     await this.redisService.setTyping(data.roomId, userId, client.id);
     (client.data.typingRooms ??= new Set()).add(data.roomId);
 

@@ -13,7 +13,7 @@ interface ChatHeaderProps {
   topic?: string;
   members?: Member[];
   isLoadingMembers?: boolean;
-  onOpenEdit?: () => void; // <-- Callback to open edit modal
+  onOpenEdit?: () => void;
   canManageRoom?: boolean;
   onInvite?: () => void;
   onOpenMembers?: () => void;
@@ -36,7 +36,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
   return (
     <div className="relative z-20 h-12 border-b border-zinc-800/80 bg-[#0d0f14] px-4 flex items-center justify-between shrink-0">
-      {/* Left: Room Info */}
+
       <div className="flex items-center space-x-2 min-w-0 flex-1 mr-4">
         <Hash className="h-4 w-4 text-indigo-400 shrink-0" />
         <div className="flex items-center space-x-2 min-w-0 flex-1">
@@ -46,9 +46,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right: Actions (Members, Pins, Settings) */}
+
       <div className="flex items-center space-x-3 shrink-0 text-zinc-400 relative">
-        {/* Members Dropdown */}
+
         <div className="relative">
           <button
             type="button"
@@ -120,7 +120,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           )}
         </div>
 
-        {/* Pinned Messages Button */}
+
         <div className="relative">
           <button
             type="button"
@@ -152,7 +152,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           )}
         </div>
 
-        {/* Room Settings / Edit Button */}
+
         {canManageRoom && onInvite && <button type="button" onClick={onInvite} title="Invite people" aria-label="Invite people" className="p-1.5 rounded-lg border bg-zinc-900 border-zinc-800 hover:text-zinc-200 hover:border-zinc-700 transition-colors"><UserPlus className="h-4 w-4" /></button>}
         {canManageRoom && onOpenEdit && (
           <button
