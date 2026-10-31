@@ -27,6 +27,9 @@ import {
 import { MessageDialog } from "./MessageDialog";
 import { MessageReplies } from "./MessageReplies";
 import { MessageSearch } from "./MessageSearch";
+import { useTyping } from '../../hooks/useTyping';
+import { usePresence } from '../../hooks/usePresence';
+import { TypingIndicator } from './TypingIndicator';
 
 export function ChatContainer() {
   const { roomId, dmId } = useParams<{ roomId?: string; dmId?: string }>();
@@ -113,6 +116,11 @@ function ChatConversation({
   const ready = Boolean(
     isConnected && isMember && connectionKey && joined === connectionKey,
   );
+  const typing = useTyping(activeRoomId ?? '', sessionData?.id ?? '', ready && Boolean(room?.capabilities.includes('text')));
+  const presence = usePresence(isMember ? room?.members.map(member => member.userId) ?? [] : []);
+  const peerId = room?.members.find(member => member.userId !== sessionData?.id)?.userId;
+  const peerStatus = peerId ? presence.status(peerId) : 'unknown';
+  const typingNames = typing.typingUserIds.filter(id => room?.members.some(member => member.userId === id)).map(id => members.data?.find(member => member.id === id)?.displayName ?? 'Someone');
 
   useEffect(() => {
     if (activeRoomId) setActiveRoomId(activeRoomId);
@@ -278,7 +286,7 @@ function ChatConversation({
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0c10]">
       <ChatHeader
         roomName={displayName}
-        topic={room?.description || (ready ? "Connected" : "Connecting…")}
+        topic={room?.type === 'dm' ? peerStatus === 'online' ? 'Online' : peerStatus === 'offline' ? 'Offline' : 'Status unavailable' : room?.description || (ready ? "Connected" : "Connecting…")}
         onOpenEdit={() => setEditRoomOpen(true)}
         onInvite={invite}
         canManageRoom={canManage}
@@ -370,7 +378,9 @@ function ChatConversation({
           }
         />
       </div>
+      <TypingIndicator users={typingNames} />
       <MessageInput
+        onTypingChange={typing.onTypingChange}
         channelName={displayName}
         onSendMessage={handleSend}
         disabled={Boolean(disabledReason)}

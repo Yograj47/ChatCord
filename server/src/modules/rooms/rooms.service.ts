@@ -25,6 +25,19 @@ import { RoomEventsService } from './room-events.service';
 
 @Injectable()
 export class RoomsService {
+  async presencePeers(userId: string): Promise<string[]> {
+    const rooms = await this.findAllForUser(userId);
+    const friends = await this.friendships.friends(userId);
+    return [
+      ...new Set([
+        userId,
+        ...rooms.flatMap((room) =>
+          room.members.map((member) => member.userId.toString()),
+        ),
+        ...friends.map((friend) => friend.user._id.toString()),
+      ]),
+    ];
+  }
   async members(roomId: string, userId: string) {
     const room = await this.findById(roomId);
     this.member(room, userId);

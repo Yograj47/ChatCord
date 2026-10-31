@@ -1,16 +1,18 @@
 import React from 'react';
+import { PresenceBadge } from '../common/PresenceBadge';
+import type { PresenceStatus } from '../../types/realtime';
 
 interface UserProfileFooterProps {
   displayName: string;
   initials: string;
-  isOnline: boolean;
+  status: PresenceStatus;
   version?: string;
 }
 
 export const UserProfileFooter: React.FC<UserProfileFooterProps> = ({
   displayName,
   initials,
-  isOnline,
+  status,
   version = 'v2.5.6',
 }) => {
   return (
@@ -22,15 +24,13 @@ export const UserProfileFooter: React.FC<UserProfileFooterProps> = ({
           </div>
           <span
             className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-[#0a0b0e] ${
-              isOnline ? 'bg-emerald-400' : 'bg-zinc-500'
+              status === 'online' ? 'bg-emerald-400' : 'bg-zinc-500'
             }`}
           />
         </div>
         <div className="min-w-0">
           <p className="text-xs font-semibold text-zinc-200 truncate">{displayName}</p>
-          <p className="text-[10px] font-mono text-emerald-400 truncate">
-            {isOnline ? 'Online' : 'Offline'}
-          </p>
+          <PresenceBadge status={status} />
         </div>
       </div>
       <span className="font-mono text-[9px] text-zinc-600 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded shrink-0">

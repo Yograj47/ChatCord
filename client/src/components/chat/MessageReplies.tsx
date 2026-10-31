@@ -5,6 +5,8 @@ import {
   useMessageMutations,
 } from "../../hooks/useMessages";
 import { MessageInput } from "./MessageInput";
+import { useTyping } from '../../hooks/useTyping';
+import { TypingIndicator } from './TypingIndicator';
 
 interface Props {
   roomId: string;
@@ -26,6 +28,7 @@ export function MessageReplies({
   const parent = useMessageDetail(roomId, userId, messageId);
   const replies = useMessages(roomId, userId, true, "", messageId);
   const { send } = useMessageMutations(roomId, userId);
+  const typing = useTyping(roomId, userId, canSend);
   useEffect(() => {
     ref.current?.showModal();
   }, []);
@@ -79,7 +82,9 @@ export function MessageReplies({
       {!replies.isPending && !replies.messages.length && (
         <p className="pb-4 text-sm text-zinc-400">No replies yet.</p>
       )}
+      <TypingIndicator users={typing.typingUserIds.map(nameFor)} />
       <MessageInput
+        onTypingChange={typing.onTypingChange}
         channelName="Replies"
         disabled={!canSend || !parent.data || Boolean(parent.data.deletedAt)}
         disabledReason={

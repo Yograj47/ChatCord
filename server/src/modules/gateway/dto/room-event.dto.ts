@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsMongoId } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsMongoId } from 'class-validator';
 import { CreateMessageDto } from '../../messages/dto/create-message.dto';
 
 export class RoomEventDto {
@@ -8,6 +8,13 @@ export class RoomEventDto {
   )
   @IsMongoId()
   roomId!: string;
+}
+
+export class PresenceSyncDto {
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsMongoId({ each: true })
+  userIds!: string[];
 }
 
 export class SendMessageEventDto extends CreateMessageDto {

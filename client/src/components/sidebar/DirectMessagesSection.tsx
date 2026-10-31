@@ -1,10 +1,12 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
+import { PresenceBadge } from '../common/PresenceBadge';
+import type { PresenceStatus } from '../../types/realtime';
 
 export interface DMItem {
     id: string;
     name: string;
-    isOnline: boolean;
+    status: PresenceStatus;
 }
 
 interface DirectMessagesSectionProps {
@@ -46,11 +48,8 @@ export const DirectMessagesSection: React.FC<DirectMessagesSectionProps> = ({
                                     : 'text-zinc-400 hover:text-zinc-200'
                                 }`}
                         >
-                            <div
-                                className={`h-2 w-2 rounded-full ${dm.isOnline ? 'bg-emerald-400' : 'bg-zinc-600'
-                                    }`}
-                            />
                             <span className="truncate">{dm.name}</span>
+                            <PresenceBadge status={dm.status} />
                         </button>
                     );
                 })}

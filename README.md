@@ -10,11 +10,11 @@ The goal is to rebuild ChatCord into a production-oriented application demonstra
 
 🚧 **In Development**
 
-Current milestone: **Messaging Integration — complete**
+Current milestone: **Real-Time Integration — complete**
 
-Current task: **Messaging integration verified and accepted; next: online presence and typing indicators**
+Current task: **Online presence and typing indicators integrated and verified**
 
-Social & Invitations is complete. Message editing, confirmed deletion, cursor pagination, quoted replies/replies view, reactions, and room-scoped search now use dedicated backend contracts, client APIs, types, hooks, and components. Real MongoDB/Redis/Socket.IO and browser checks passed. All 129 backend tests pass. Broader application testing, presence/typing integration, and deployment remain in progress.
+Social, messaging, and real-time integration are implemented. Online presence now uses scoped snapshots, live events, and per-tab Redis leases. Main and replies composers send real typing signals with idle/blur/send cleanup. Real MongoDB/Redis/Socket.IO and browser checks passed. All 136 backend tests pass. Broader application testing and deployment remain in progress; UI and folder-structure cleanup are deferred.
 
 ---
 
@@ -240,12 +240,16 @@ See [messaging integration](docs/messaging-integration.md) for the API/type/hook
 - [x] Integrate Socket.IO connection lifecycle
 - [x] Integrate room join/leave events
 - [x] Integrate real-time messages
-- [ ] Integrate online presence
-- [ ] Integrate typing indicators
+- [x] Integrate online presence
+- [x] Integrate typing indicators
 - [x] Handle socket reconnection
 - [x] Synchronize message history and room membership with server state
 
+See [presence and typing](docs/presence-typing.md) for socket contracts, lease expiry, multi-tab behavior, authorization, client hooks, and repeatable verification.
+
 ## Testing
+
+Real-time validation (2026-10-31): 136 tests across 15 suites passed. Backend/frontend production builds, TypeScript and changed-file lint passed. Live MongoDB/Redis/Socket.IO checks passed scoped presence, multi-tab online/offline transitions, reconnect, lease expiry, typing snapshots, stop/disconnect/leave/send cleanup, and outsider rejection. Browser checks confirmed real Friends/sidebar/DM/member status, offline-to-online transitions on reconnect, and a peer typing indicator that clears after inactivity. The harness exited successfully and removed its isolated records; temporary servers were stopped.
 
 Messaging validation (2026-10-31): 129 tests across 14 suites passed. Backend/frontend production builds, TypeScript, and changed-file lint passed. Live message API and Socket.IO tests passed author-only edits/deletion, cursor boundaries, search scoping, reply persistence, idempotent reactions, and deletion placeholders. Browser checks passed sending, searching, editing, reaction changes, both reply workflows, reload persistence, confirmed deletion, deleted-parent quotes, and older-page loading. User manual testing passed. UI and folder-structure cleanup are deferred.
 
@@ -263,7 +267,7 @@ Repeat the search check from `server` with `npx ts-node --transpile-only -r tsco
 
 Repeat the social check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts`. Previously deferred username expectations and outdated room mocks have been updated for onboarding and atomic membership operations; the full unit suite now passes.
 
-- [x] Backend test suite (129 passing, including social HTTP module and messaging tests)
+- [x] Backend test suite (136 passing, including social, messaging, presence and typing tests)
 - [ ] API integration tests
 - [x] Live DM Socket.IO integration checks (MongoDB and Redis)
 - [ ] Frontend tests
