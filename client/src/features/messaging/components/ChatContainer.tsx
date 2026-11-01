@@ -121,7 +121,8 @@ function ChatConversation({ requestedRoomId }: { requestedRoomId: string | null 
   );
   const invite = () => {
     setMembersOpen(false);
-    if (activeRoomId) void navigate(`/app/invitations?view=send&room=${activeRoomId}`);
+    if (activeRoomId)
+      void navigate(`/app/notifications?section=invitations&view=send&room=${activeRoomId}`);
   };
   const update = async (payload: UpdateRoomDto) => {
     if (!activeRoomId) return;
@@ -149,26 +150,22 @@ function ChatConversation({ requestedRoomId }: { requestedRoomId: string | null 
               : peerStatus === 'offline'
                 ? 'Offline'
                 : 'Status unavailable'
-            : room?.description || (ready ? 'Connected' : 'Connecting…')
+            : room?.description || ''
         }
         onOpenEdit={() => setEditRoomOpen(true)}
-        onInvite={invite}
         canManageRoom={canManage}
         onOpenMembers={() => setMembersOpen(true)}
         memberCount={room?.members.length ?? 0}
+        searchControl={
+          isMember ? (
+            <MessageSearch
+              value={search}
+              onChange={setSearch}
+              searching={messageQuery.isFetching && Boolean(search)}
+            />
+          ) : undefined
+        }
       />
-      <div role="status" className="px-4 pt-2 text-xs text-zinc-500">
-        {ready
-          ? 'Connected'
-          : (socketError ?? (isMember ? 'Connecting…' : 'Read-only · join to participate'))}
-      </div>
-      {isMember && (
-        <MessageSearch
-          value={search}
-          onChange={setSearch}
-          searching={messageQuery.isFetching && Boolean(search)}
-        />
-      )}
       {(messageError || messageQuery.isError || roomError) && (
         <div role="alert" className="px-4 py-2 text-sm text-rose-300">
           {roomError

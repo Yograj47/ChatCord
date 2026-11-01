@@ -78,6 +78,7 @@ let invitations = invitedRooms.map((room, i) => ({
   expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
 }));
 const sentInvitations = new Set();
+let signedIn = true;
 const server = await createServer({
   server: { host: '127.0.0.1', port: 4177, strictPort: true },
   define: {
@@ -96,6 +97,24 @@ const server = await createServer({
             res.statusCode = status;
             res.end(JSON.stringify(body));
           };
+          if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
+            signedIn = false;
+            return send({ message: 'Synthetic session ended.' });
+          }
+          if (!signedIn) return send({ message: 'Not signed in.' }, 401);
+          if (url.pathname === '/api/auth/onboarding' && req.method === 'POST') {
+            if (mode === 'guest') return send({ message: 'Registered account required.' }, 401);
+            let text = '';
+            for await (const chunk of req) text += chunk;
+            const profile = JSON.parse(text);
+            if (people.slice(1).some((person) => person.username === profile.username))
+              return send({ message: 'Username is already taken.' }, 409);
+            Object.assign(people[0], {
+              username: profile.username,
+              displayName: profile.displayName,
+            });
+            return send(people[0]);
+          }
           if (url.pathname === '/api/auth/me')
             return send(
               mode === 'guest'

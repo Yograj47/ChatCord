@@ -138,3 +138,82 @@ The largest chunk is about **62% smaller**, and the initial static JS graph abou
 ### Remaining product and verification work
 
 Full automated browser end-to-end coverage and CI execution remain open in the project roadmap. Cross-conversation message-text search, uploads/attachments, emoji picker, pin persistence and broader visual/theme refinement are separate features. Additional browser/screen-reader testing is still useful. These are not silently marked complete by the architecture cleanup.
+
+## UI follow-up — Branded splash (2026-11-01)
+
+Branch: `fix/frontend-ui-ux`.
+
+- Startup session resolution and lazy-route loading now use a shared ChatCord logo splash, replacing full-page layout placeholders and generic route-loading text.
+- The existing logo has a soft pulse/glow with a slim shimmer line. Reduced-motion preferences disable animation. No artificial minimum loading time was added; in-page content loading remains unchanged.
+- Production build, ESLint and all **40 regression tests** pass. The new regression verifies the splash is shown while session identity is unresolved and protected conversation content is withheld.
+- The isolated browser preview was visually checked. Preview it with Vite at `/test/dialog-preview.html?splash`.
+
+## UI follow-up — Profile editing and logout (2026-11-01)
+
+- Added labelled Profile and Log out controls in the sidebar account footer. Guest sessions can log out; registered users can edit their username and display name.
+- Profile editing reuses the existing authenticated `POST /auth/onboarding` endpoint, which already supports atomic username/display-name updates and duplicate-username conflicts. No backend contract or permission rule changed. Email is shown read-only when available; avatar uploading is outside this change.
+- The accessible modal validates and normalizes input, disables dismissal while saving, preserves drafts on failure and refreshes session/member/DM caches after success. Logout uses the existing session-revocation flow, clears private client caches and returns to sign in. Failure leaves a retryable account control visible.
+- All **47 tests across eight files** pass, including seven new account-control tests covering form defaults, validation, normalized save/session refresh, conflicts, guests, successful logout and logout failure. Build, strict TypeScript, ESLint, static architecture and bundle budget checks pass.
+- An isolated browser fixture verified editing a synthetic display name and seeing the new name/initials in the sidebar. The fixture now supports in-memory profile edits/logout; no real account was modified. Current largest JS chunk is 237.59 kB; no oversized-chunk warning.
+
+## UI follow-up — Account menu and Settings layout (2026-11-01)
+
+- Replaced the footer's standalone Profile/Log out buttons with a three-dot Account options menu. Settings and Log out are its two actions. The existing Base UI menu provides keyboard navigation, Escape/outside dismissal and focus restoration; pointer opening was checked in the browser.
+- Settings now has its own lazy-loaded layout at `/app/settings`, outside the workspace shell. Desktop uses a two-column account navigation/content layout. Mobile uses grouped navigation cards, separate detail screens and Back to settings navigation. Back to workspace preserves the originating workspace path.
+- Profile settings includes the current photo or initials, a disabled Change photo action labelled Coming soon, and the existing validated username/display-name editor. Save stays on the page with inline confirmation; unchanged forms cannot be submitted and Reset changes discards the draft. API failures preserve entered values.
+- Password settings explains that registered users sign in with Google and manage passwords in their Google Account. No unsupported local password form or upload endpoint was introduced. Guest sessions receive the appropriate account guidance.
+- **52 tests across eight files** pass, including account-menu keyboard/focus behavior, section navigation, photo availability, profile reset/save/conflicts, logout and returning to the originating screen. Build, strict source/test TypeScript, lint, formatting, static architecture and the bundle budget checks pass.
+- Browser verification observed the desktop profile layout, pointer-operated menu navigation and the mobile Password screen. The synthetic preview remains available for review; no real account was modified.
+- The menu uses an existing dependency and adds deferred workspace code. The largest JS chunk is 281.41 kB and the initial static graph 363.99 kB; all chunks remain below 500 kB. A frontend LF checkout policy was added so formatter checks remain stable after Windows checkouts; unchanged files received line-ending normalization only.
+
+## UI follow-up — Sidebar simplification (2026-11-01)
+
+- Removed both connection indicators from the sidebar brand/header. The footer now uses one presence badge; the duplicate avatar status dot is removed.
+- Sidebar account, DM and friend-picker labels now prefer usernames, with account initials derived from the username. Profile settings still edits the display name separately.
+- Removed sidebar room search, its unused filtering state and the unused SidebarSearch component. Rooms and DMs render their lists directly; workspace search remains available in the main header.
+
+## UI follow-up — Unified Notifications (2026-11-01)
+
+- Moved Friends and Invitations from the sidebar into one header Notifications destination with two sections. Friends opens on requests; the badge counts incoming friend requests and room invitations only.
+- Preserved legacy social links and invitation send/room parameters. Removed sidebar room/DM plus buttons and the unused friend picker; room creation remains under New and DM creation remains in Friends.
+- Added mobile workspace return navigation and compact header search. No backend changes.
+- All 57 tests across nine files pass, including five notification navigation/count tests. Production build, TypeScript, lint, architecture and bundle checks pass.
+
+## UI follow-up — Notifications spacing (2026-11-01)
+
+- Aligned the Notifications header and content, reduced duplicate heading emphasis, and removed promotional copy from social sections.
+- Replaced invitation mode button styling with quieter compact tabs. Send invitations uses a narrower form panel; the inbox empty state has a smaller icon, shorter copy and no oversized dashed border.
+- Existing invitation routing and actions are preserved. All 57 behavior tests pass; production build and lint pass.
+
+## UI follow-up — Compact Settings (2026-11-01)
+
+- Reduced the Settings header from 80px to 48px, with a smaller logo and quieter breadcrumb. Removed promotional labels and duplicate introductory copy.
+- Narrowed desktop navigation and content spacing, reduced section headings, photo size, card padding and form control heights. Settings now uses the shared background/card tokens and smaller corner radii to match the workspace. Mobile overview/detail navigation is preserved.
+- All 57 behavior tests pass, including profile validation/save/reset and Settings navigation.
+
+## UI follow-up — Member dialog (2026-11-01)
+
+- Member rows now use initials, username-first labels, a separate presence line and a quiet You marker. Shared list dividers replace stacked outlined cards.
+- Removed duplicate role labels when role editing is available. Role and visibility selects have consistent heights, padding, chevrons and keyboard focus; permission rows and the checkbox use consistent spacing.
+- Membership authorization, confirmation and mutation behavior are unchanged. Production build and lint pass.
+
+## UI follow-up — Shared room editor (2026-11-01)
+
+- Create and edit now use one RoomEditorDialog and RoomForm for the modal layout, validation setup, fields and actions. Existing form entry points are thin adapters for previews and consumers.
+- Creation retains visibility and group/text defaults. Editing preloads name/description and submits only update fields. Both share the same icon, sizing and dismissal policy.
+- All 57 tests pass. TypeScript, production build and architecture checks pass.
+
+## UI follow-up — Chat header controls (2026-11-01)
+
+- Conversation search is collapsed by default in the chat header. Opening focuses the input; closing or Escape clears the filter and restores button focus.
+- Removed the standalone connection-status row and the Connected topic fallback. Connection failures still reach the composer guidance. Moved the invite icon/action into the members dialog.
+- Attachment and emoji buttons remain disabled with explicit accessible labels and muted styling. All 58 tests pass, including search dismissal and filter clearing.
+
+## UI checkpoint — Workspace and account polish (2026-11-01)
+
+- Notifications includes a back button that navigates one history entry.
+- Final workspace search uses a top-aligned overlay with a transparent input and grouped room/DM results. Chat search fades between its icon and expandable input, respects reduced motion and clears on close.
+- Settings spacing was relaxed after the compact pass while retaining the 48px header.
+- Checkpoint includes the branded splash, Settings/profile/logout, sidebar simplification, unified Notifications, shared room editor, member dialog and chat controls.
+
+Final checkpoint validation: 59 tests across nine files, source/test TypeScript, ESLint, formatting, architecture checks, production build and bundle budget all pass. Largest JavaScript chunk: 281.44 kB (below 500 kB).

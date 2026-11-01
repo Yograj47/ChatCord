@@ -22,6 +22,8 @@ Vitest discovers `test/**/*.test.ts(x)`. React Testing Library exercises observa
 
 - Session/onboarding route gates and room/DM/reply direct links.
 - Route-derived sidebar selection, guest session identity and logout cache isolation.
+- Three-dot account menu/focus, Settings navigation, profile editing/reset, normalized save/session refresh, server conflict errors, guest controls and logout navigation/failure. Photo changes are Coming soon; Password settings describes Google-managed credentials.
+- Notifications sections, incoming-only badge counts, guest query guards and legacy invitation redirects with preserved parameters.
 - Accessible room validation, visibility submission and pending dialog cancellation.
 - Draft retention on failed delivery and clearing on successful delivery.
 - Canonical room query reuse and focused room mutations without incidental list fetching.

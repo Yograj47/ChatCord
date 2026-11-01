@@ -22,11 +22,17 @@ export function InvitationComposer({ room, userId }: { room: Room; userId: strin
   const members = new Set(room.members.map((member) => member.userId));
   return (
     <div>
-      <label htmlFor="invite-user-search" className="mb-2 block text-sm font-medium">
-        Invite someone by username
+      <label
+        htmlFor="invite-user-search"
+        className="mb-1.5 block text-xs font-medium text-zinc-300"
+      >
+        Username
       </label>
       <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" aria-hidden="true" />
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+          aria-hidden="true"
+        />
         <input
           id="invite-user-search"
           type="search"
@@ -39,14 +45,14 @@ export function InvitationComposer({ room, userId }: { room: Room; userId: strin
           spellCheck={false}
           maxLength={20}
           aria-describedby="invite-user-hint"
-          placeholder="e.g. alex"
-          className="w-full rounded-xl border border-zinc-800 bg-card py-2.5 pl-10 pr-3 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+          placeholder="Search by username"
+          className="h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 pl-9 pr-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-400 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-400"
         />
       </div>
-      <p id="invite-user-hint" className="mb-5 mt-2 text-xs text-zinc-500">
-        Search with 2–20 letters, numbers, or underscores.
+      <p id="invite-user-hint" className="mt-2 text-xs leading-relaxed text-zinc-500">
+        Use 2–20 letters, numbers, or underscores. Invitations expire in seven days.
       </p>
-      <div aria-live="polite" className="mb-4 text-sm text-zinc-400">
+      <div aria-live="polite" className="text-sm text-zinc-400 [&:not(:empty)]:mt-4">
         {input && !valid ? (
           <p>Enter a valid username prefix to search.</p>
         ) : waiting ? (
@@ -77,7 +83,7 @@ export function InvitationComposer({ room, userId }: { room: Room; userId: strin
         )}
       </div>
       {valid && query === debounced && search.isSuccess && !waiting && (
-        <ul aria-label="People to invite" className="space-y-3">
+        <ul aria-label="People to invite" className="mt-4 space-y-2">
           {search.data.map((user) => (
             <li
               key={user._id}

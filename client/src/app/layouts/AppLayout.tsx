@@ -1,4 +1,4 @@
-import { GlobalSearchModal } from '@/app/components/GlobalSearchModal';
+import { GlobalSearchPanel } from '@/app/components/GlobalSearchPanel';
 import { Header } from '@/app/components/Header';
 import { Sidebar } from '@/app/components/Sidebar';
 import { useSession } from '@/features/auth/hooks/useSession';
@@ -39,7 +39,7 @@ export const AppLayout: React.FC = () => {
         </div>
       </div>
 
-      <GlobalSearchModal />
+      <GlobalSearchPanel />
       <CreateRoomModal />
     </div>
   );

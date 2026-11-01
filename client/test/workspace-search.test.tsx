@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { GlobalSearchModal } from '@/app/components/GlobalSearchModal';
+import { GlobalSearchPanel } from '@/app/components/GlobalSearchPanel';
 import { useLayoutStore } from '@/shared/stores/layout.store';
 
 vi.mock('@/features/auth/hooks/useSession', () => ({
@@ -30,7 +30,7 @@ describe('real conversation search', () => {
   it('filters room and DM data instead of fixture suggestions', async () => {
     render(
       <MemoryRouter>
-        <GlobalSearchModal />
+        <GlobalSearchPanel />
         <Location />
       </MemoryRouter>,
     );
@@ -46,13 +46,13 @@ describe('real conversation search', () => {
   ])('opens %s and closes the dialog', async (name, url) => {
     render(
       <MemoryRouter>
-        <GlobalSearchModal />
+        <GlobalSearchPanel />
         <Location />
       </MemoryRouter>,
     );
     await userEvent.click(screen.getByRole('button', { name }));
     expect(screen.getByTestId('location')).toHaveTextContent(url);
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Search conversations' })).not.toBeInTheDocument();
     expect(useLayoutStore.getState().mobileView).toBe('chat');
   });
 });

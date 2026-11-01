@@ -23,9 +23,8 @@ export function SendInvitations({
     (!selectedRoomId ? managed[0] : undefined);
   return (
     <>
-      <p className="mb-5 text-sm text-zinc-400">
-        Owners and moderators can invite registered users. Each invitation lasts seven days; the
-        recipient chooses whether to join.
+      <p className="mb-5 text-xs leading-relaxed text-zinc-500">
+        Choose a room, then find someone to invite.
       </p>
       {rooms.isPending && (
         <p role="status" className="text-sm text-zinc-400">
@@ -54,14 +53,17 @@ export function SendInvitations({
       )}
       {rooms.isSuccess && managed.length > 0 && (
         <>
-          <label htmlFor="invitation-room" className="mb-2 block text-sm font-medium">
-            Choose a room
+          <label
+            htmlFor="invitation-room"
+            className="mb-1.5 block text-xs font-medium text-zinc-300"
+          >
+            Room
           </label>
           <select
             id="invitation-room"
             value={selected?._id ?? ''}
             onChange={(event) => onSelectRoom(event.target.value)}
-            className="mb-6 w-full rounded-xl border border-zinc-800 bg-card p-3 text-sm text-zinc-100 focus:border-indigo-500 focus:outline-none"
+            className="mb-5 h-10 w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 focus:border-indigo-400 focus:outline-2 focus:outline-offset-2 focus:outline-indigo-400"
           >
             <option value="" disabled>
               Select a room

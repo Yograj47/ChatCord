@@ -12,20 +12,15 @@ export function RegisteredInvitations({ userId }: { userId: string }) {
   return (
     <section
       aria-labelledby="invitations-heading"
-      className="h-full overflow-y-auto bg-background p-4 sm:p-8"
+      className="bg-background px-4 py-5 sm:px-8 sm:py-6"
     >
       <div className="mx-auto max-w-3xl">
-        <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-400">
-              Make room for more
-            </p>
-            <h1 id="invitations-heading" className="text-2xl font-semibold tracking-tight">
+            <h1 id="invitations-heading" className="text-base font-semibold">
               Room invitations
             </h1>
-            <p className="mt-2 text-sm text-zinc-400">
-              Join a space or bring someone into the conversation.
-            </p>
+            <p className="mt-1 text-xs text-zinc-500">Manage invitations to your rooms.</p>
           </div>
           <button
             type="button"
@@ -41,13 +36,13 @@ export function RegisteredInvitations({ userId }: { userId: string }) {
         </div>
         <nav
           aria-label="Invitation views"
-          className="mb-6 flex flex-wrap gap-2 border-b border-zinc-800 pb-4"
+          className="mb-5 flex flex-wrap gap-1 border-b border-zinc-800/70 pb-3"
         >
           <button
             type="button"
             aria-pressed={!sending}
-            onClick={() => setParams({})}
-            className={`${actionClassName} ${!sending ? 'border-indigo-500/40 bg-indigo-500/10' : ''}`}
+            onClick={() => setParams({ section: 'invitations' })}
+            className={`rounded-md px-3 py-2 text-xs transition focus-visible:outline-2 focus-visible:outline-indigo-400 ${!sending ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-200'}`}
           >
             Received{invitations.data ? ` (${invitations.data.length})` : ''}
           </button>
@@ -56,22 +51,25 @@ export function RegisteredInvitations({ userId }: { userId: string }) {
             aria-pressed={sending}
             onClick={() =>
               setParams({
+                section: 'invitations',
                 view: 'send',
                 ...(params.get('room') ? { room: params.get('room')! } : {}),
               })
             }
-            className={`${actionClassName} inline-flex items-center gap-2 ${sending ? 'border-indigo-500/40 bg-indigo-500/10' : ''}`}
+            className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs transition focus-visible:outline-2 focus-visible:outline-indigo-400 ${sending ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-500 hover:text-zinc-200'}`}
           >
             <Send className="h-3.5 w-3.5" aria-hidden="true" />
             Send invitation
           </button>
         </nav>
         {sending ? (
-          <SendInvitations
-            userId={userId}
-            selectedRoomId={params.get('room') ?? ''}
-            onSelectRoom={(room) => setParams({ view: 'send', room })}
-          />
+          <div className="w-full max-w-md">
+            <SendInvitations
+              userId={userId}
+              selectedRoomId={params.get('room') ?? ''}
+              onSelectRoom={(room) => setParams({ section: 'invitations', view: 'send', room })}
+            />
+          </div>
         ) : (
           <InvitationInbox userId={userId} />
         )}

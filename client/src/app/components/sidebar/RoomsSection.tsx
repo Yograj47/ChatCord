@@ -1,4 +1,4 @@
-import { Hash, Plus } from 'lucide-react';
+import { Hash } from 'lucide-react';
 import React from 'react';
 
 export interface RoomItem {
@@ -11,27 +11,17 @@ interface RoomsSectionProps {
   rooms: RoomItem[];
   activeRoomId: string;
   onSelectRoom: (id: string) => void;
-  onCreateRoom: () => void;
 }
 
 export const RoomsSection: React.FC<RoomsSectionProps> = ({
   rooms,
   activeRoomId,
   onSelectRoom,
-  onCreateRoom,
 }) => {
   return (
     <div>
       <div className="px-2 mb-1.5 flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
         <span>Active Rooms</span>
-        <button
-          type="button"
-          onClick={onCreateRoom}
-          title="Create Group Room"
-          className="text-zinc-600 hover:text-zinc-300 transition-colors"
-        >
-          <Plus className="h-3 w-3" />
-        </button>
       </div>
       <div className="space-y-0.5">
         {rooms.map((room) => {

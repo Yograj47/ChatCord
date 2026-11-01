@@ -86,6 +86,8 @@ Feature modules cannot import app/pages; shared modules cannot import features/a
 
 ### Navigation and connection ownership
 
+The three-dot account menu opens a separate Settings layout at `/app/settings`, with Profile and Password detail routes. Profile photos are marked Coming soon; passwords remain managed by Google. Settings preserves a return link to the originating workspace screen.
+
 Routes include sign-in (`/`), OAuth callback, username onboarding, the `/app` workspace, Friends, Invitations, rooms, DMs, and room reply deep links. Client route gates handle session and onboarding UX; backend guards remain authoritative.
 
 `AppLayout` owns the registered user's socket connection. The conversation connection hook subscribes/unsubscribes to room events without recreating that connection. Guests can enter the workspace shell but cannot use registered-only social, room/message, or realtime APIs.
@@ -244,7 +246,7 @@ The default backend Jest suite is controller-only. Specs under `server/test/cont
 
 The opt-in `npm run test:integration` suite under `server/test/integration` boots the actual AppModule with MongoDB and Redis. HTTP workflows exercise real services, guards and persistence, including concurrency and authorization. Each run uses a uniquely generated temporary MongoDB database and drops it in teardown. Registered identities are seeded; external Google login is excluded. It runs separately from the controller-only default suite.
 
-See [backend tests](../server/test/README.md) for layout, configuration, cleanup and scope. Prior feature validations included real MongoDB/Redis/Socket.IO and browser checks; they are historical evidence, not part of the default test run. The separate opt-in `verify-*.ts` utilities remain under `server/test`, create isolated fixture records, and clean up their own data. The frontend has a separate Vitest/Testing Library suite (39 behavior tests across seven files), strict source/test checks, formatting and layer checks. Browser fixtures remain supplemental, not a comprehensive end-to-end suite. See [frontend verification](../client/test/README.md).
+See [backend tests](../server/test/README.md) for layout, configuration, cleanup and scope. Prior feature validations included real MongoDB/Redis/Socket.IO and browser checks; they are historical evidence, not part of the default test run. The separate opt-in `verify-*.ts` utilities remain under `server/test`, create isolated fixture records, and clean up their own data. The frontend has a separate Vitest/Testing Library suite (59 behavior tests across nine files), strict source/test checks, formatting and layer checks. Browser fixtures remain supplemental, not a comprehensive end-to-end suite. See [frontend verification](../client/test/README.md).
 
 Known limitations and follow-up work:
 
@@ -271,3 +273,5 @@ Related guides:
 - [Messaging integration](messaging-integration.md)
 - [Presence and typing](presence-typing.md)
 - [Live realtime verification](realtime-verification.md)
+
+The workspace header links to `/app/notifications`, combining Friends and Invitations sections. Its badge counts incoming friend requests and room invitations. Legacy social routes redirect while preserving invitation parameters. Sidebar room and DM headings have no creation shortcuts; room creation remains in the header and DM creation in Friends.

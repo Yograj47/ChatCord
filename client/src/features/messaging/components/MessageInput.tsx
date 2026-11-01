@@ -107,8 +107,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       <form onSubmit={handleSend} className="relative flex items-center">
         <button
           type="button"
-          className="absolute left-3 text-zinc-500 hover:text-zinc-300 transition-colors z-10"
+          className="absolute left-3 text-zinc-600 opacity-50 cursor-not-allowed z-10"
           disabled
+          aria-label="Attachments (coming soon)"
           title="Attachments (coming soon)"
         >
           <Paperclip className="h-4 w-4" />
@@ -144,8 +145,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         <div className="absolute right-3 flex items-center space-x-2 z-10">
           <button
             type="button"
-            className="text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="text-zinc-600 opacity-50 cursor-not-allowed"
             disabled
+            aria-label="Emoji picker (coming soon)"
             title="Emoji picker (coming soon)"
           >
             <Smile className="h-4 w-4" />

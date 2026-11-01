@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { MessageSearch } from '@/features/messaging/components/MessageSearch';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -78,5 +80,31 @@ describe('dialog cancellation contract', () => {
     dialog.dispatchEvent(event);
     expect(close).toHaveBeenCalledTimes(pending ? 0 : 1);
     expect(event.defaultPrevented).toBe(true);
+  });
+});
+
+describe('conversation header search', () => {
+  it('expands, filters and clears the filter when dismissed with Escape', async () => {
+    function SearchHarness() {
+      const [value, setValue] = useState('');
+      return (
+        <>
+          <MessageSearch value={value} onChange={setValue} searching={false} />
+          <output aria-label="Current filter">{value}</output>
+        </>
+      );
+    }
+    render(<SearchHarness />);
+    const trigger = screen.getByRole('button', { name: 'Search conversation' });
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    await userEvent.click(trigger);
+    const input = screen.getByRole('searchbox');
+    expect(input).toHaveFocus();
+    await userEvent.type(input, 'hello');
+    expect(screen.getByLabelText('Current filter')).toHaveTextContent('hello');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Current filter')).toBeEmptyDOMElement();
+    expect(trigger).toHaveFocus();
   });
 });

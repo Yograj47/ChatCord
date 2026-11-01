@@ -1,12 +1,11 @@
+import { LegacySocialRedirect } from '@/app/components/LegacySocialRedirect';
 import { RouteBoundary } from '@/app/components/RouteBoundary';
 import { AuthLayout } from '@/app/layouts/AuthLayout';
 import { OnboardingLayout } from '@/app/layouts/OnboardingLayout';
 import { useSession } from '@/features/auth/hooks/useSession';
-import { AppLayoutSkeleton } from '@/shared/ui/AppLayoutSkeleton';
-import { AuthLayoutSkeleton } from '@/shared/ui/AuthLayoutSkeleton';
-import { OnboardingLayoutSkeleton } from '@/shared/ui/OnboardingLayoutSkeleton';
+import { AppSplash } from '@/shared/ui/AppSplash';
 import React, { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 
 const WelcomePage = lazy(() =>
   import('@/pages/auth/WelcomePage').then((module) => ({ default: module.WelcomePage })),
@@ -29,41 +28,34 @@ const ChatContainer = lazy(() =>
     default: module.ChatContainer,
   })),
 );
-const FriendsPage = lazy(() =>
-  import('@/pages/FriendsPage').then((module) => ({ default: module.FriendsPage })),
-);
-const InvitationsPage = lazy(() =>
-  import('@/pages/InvitationsPage').then((module) => ({ default: module.InvitationsPage })),
+const NotificationsPage = lazy(() =>
+  import('@/pages/NotificationsPage').then((module) => ({ default: module.NotificationsPage })),
 );
 const HomePage = lazy(() =>
   import('@/pages/HomePage').then((module) => ({ default: module.HomePage })),
 );
+const SettingsLayout = lazy(() =>
+  import('@/app/layouts/SettingsLayout').then((module) => ({ default: module.SettingsLayout })),
+);
+const ProfilePage = lazy(() =>
+  import('@/pages/settings/ProfilePage').then((module) => ({ default: module.ProfilePage })),
+);
+const PasswordPage = lazy(() =>
+  import('@/pages/settings/PasswordPage').then((module) => ({ default: module.PasswordPage })),
+);
 
 export const AppRouter: React.FC = () => {
   const { sessionData, isLoading, requiresOnboarding, isGuest } = useSession();
-  const location = useLocation();
 
   if (isLoading) {
-    if (location.pathname.startsWith('/app')) {
-      return <AppLayoutSkeleton />;
-    }
-    if (location.pathname.startsWith('/onboarding')) {
-      return <OnboardingLayoutSkeleton />;
-    }
-    return <AuthLayoutSkeleton />;
+    return <AppSplash />;
   }
 
   const isAuthenticated = Boolean(sessionData);
 
   return (
     <RouteBoundary>
-      <Suspense
-        fallback={
-          <div role="status" className="p-8">
-            Loading screen…
-          </div>
-        }
-      >
+      <Suspense fallback={<AppSplash />}>
         <Routes>
           <Route element={<AuthLayout />}>
             <Route
@@ -99,6 +91,23 @@ export const AppRouter: React.FC = () => {
           </Route>
 
           <Route
+            path="/app/settings"
+            element={
+              !isAuthenticated ? (
+                <Navigate to="/" replace />
+              ) : requiresOnboarding && !isGuest ? (
+                <Navigate to="/onboarding/username" replace />
+              ) : (
+                <SettingsLayout />
+              )
+            }
+          >
+            <Route index element={<ProfilePage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="password" element={<PasswordPage />} />
+            <Route path="*" element={<Navigate to="/app/settings" replace />} />
+          </Route>
+          <Route
             path="/app"
             element={
               !isAuthenticated ? (
@@ -111,8 +120,9 @@ export const AppRouter: React.FC = () => {
             }
           >
             <Route index element={<HomePage />} />
-            <Route path="friends" element={<FriendsPage />} />
-            <Route path="invitations" element={<InvitationsPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="friends" element={<LegacySocialRedirect section="friends" />} />
+            <Route path="invitations" element={<LegacySocialRedirect section="invitations" />} />
 
             <Route path="rooms/:roomId" element={<ChatContainer />} />
 

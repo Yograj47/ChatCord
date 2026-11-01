@@ -1,9 +1,7 @@
-import { CreateRoomForm } from '@/features/rooms/components/CreateRoomForm';
+import { RoomEditorDialog } from '@/features/rooms/components/RoomEditorDialog';
 import { useCreateRoom } from '@/features/rooms/hooks/useRooms';
 import { useRoomUiStore } from '@/features/rooms/stores/room-ui.store';
 import type { CreateRoomDto } from '@/features/rooms/types/room.types';
-import { Modal } from '@/shared/ui/Modal';
-import { MessageSquare } from 'lucide-react';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,19 +22,12 @@ export const CreateRoomModal: React.FC = () => {
   };
 
   return (
-    <Modal
+    <RoomEditorDialog
+      mode="create"
       isOpen={isCreateRoomOpen}
-      isPending={isCreatingRoom}
-      onClose={() => setCreateRoomOpen(false)}
-      title="Create Group Room"
-      description="Spin up a new collaborative space for your team."
-      icon={<MessageSquare className="h-5 w-5" />}
-    >
-      <CreateRoomForm
-        onSubmit={handleCreateRoom}
-        onCancel={() => setCreateRoomOpen(false)}
-        isLoading={isCreatingRoom}
-      />
-    </Modal>
+      onSubmit={handleCreateRoom}
+      onCancel={() => setCreateRoomOpen(false)}
+      isLoading={isCreatingRoom}
+    />
   );
 };

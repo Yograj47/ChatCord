@@ -216,9 +216,9 @@ Friendship routes and response formats are documented in [Friendships API](serve
 
 All eight findings in the [social module review](docs/social-module-review.md) have implemented fixes. The [social API guide](docs/social-api.md) documents DM policy, consent-based invitations, identifiers, and verification.
 
-Open **Friends** in the sidebar for friend lists, incoming/outgoing requests, and username search. The [Friends frontend guide](docs/friends-frontend.md) covers behavior and the synthetic browser verification workflow.
+Open **Notifications / Friends** in the main header for friend lists, incoming/outgoing requests, and username search. The [Friends frontend guide](docs/friends-frontend.md) covers behavior and the synthetic browser verification workflow.
 
-Open **Invitations** for received room invitations and sending invitations from groups you manage. Owners/moderators can also use **Invite people** in a room header. See the [room invitations frontend guide](docs/invitations-frontend.md).
+Open **Notifications / Invitations** for received room invitations and sending invitations from groups you manage. Owners/moderators can also use **Invite people** in the members dialog. See the [room invitations frontend guide](docs/invitations-frontend.md).
 
 Use the room-header member count for [Members and permissions](docs/room-permissions.md). The [live realtime verification guide](docs/realtime-verification.md) documents the real MongoDB/Redis browser and Socket.IO checks and fixture cleanup.
 
@@ -274,7 +274,7 @@ Repeat the separate live social check from `server` with `npx ts-node --transpil
 - [x] Backend controller HTTP test suite (128 passing across six suites in server/test/controllers)
 - [x] Full API integration tests with real persistence (19 HTTP workflows using the actual AppModule, MongoDB and Redis)
 - [x] Live DM Socket.IO integration checks (MongoDB and Redis)
-- [x] Frontend behavior regression tests (39 passing across seven files)
+- [x] Frontend behavior regression tests (59 passing across nine files)
 - [ ] End-to-end tests
 
 Frontend commands and verification scope are documented in [frontend verification](client/test/README.md). Route splitting replaces the previous oversized single bundle; `npm run check:bundle` checks the built JavaScript chunks without suppressing Vite’s warning threshold.
@@ -324,3 +324,7 @@ Merge into main
  ↓
 Update tracker
 ```
+
+## Workspace UI updates
+
+The app opens with an animated logo splash that respects reduced motion. The sidebar account menu provides Settings and Log out. Settings includes profile editing, a photo option marked Coming soon, and Google-managed password guidance. The sidebar shows usernames and one account presence indicator, without room search or creation shortcuts. Friends and Invitations are available together under the main header Notifications button.
