@@ -15,12 +15,21 @@ interface Props {
   messageId: string;
   canSend: boolean;
   onClose: () => void;
+  historySince?: string;
   nameFor: (id: string) => string;
 }
-export function MessageReplies({ roomId, userId, messageId, canSend, onClose, nameFor }: Props) {
+export function MessageReplies({
+  roomId,
+  userId,
+  messageId,
+  canSend,
+  onClose,
+  nameFor,
+  historySince,
+}: Props) {
   const titleId = useId();
-  const parent = useMessageDetail(roomId, userId, messageId);
-  const replies = useMessages(roomId, userId, true, '', messageId);
+  const parent = useMessageDetail(roomId, userId, messageId, historySince);
+  const replies = useMessages(roomId, userId, true, '', messageId, historySince);
   const { send } = useMessageMutations(roomId, userId);
   const typing = useTyping(roomId, userId, canSend);
   return (
@@ -70,13 +79,20 @@ export function MessageReplies({ roomId, userId, messageId, canSend, onClose, na
       <MessageInput
         onTypingChange={typing.onTypingChange}
         channelName="Replies"
-        disabled={!canSend || !parent.data || Boolean(parent.data.deletedAt)}
+        disabled={
+          !canSend ||
+          !parent.data ||
+          Boolean(parent.data.deletedAt) ||
+          parent.data.kind === 'system'
+        }
         disabledReason={
           !canSend
             ? 'Connect to this conversation to reply.'
-            : parent.data?.deletedAt
-              ? 'This message was deleted.'
-              : undefined
+            : parent.data?.kind === 'system'
+              ? 'System messages cannot be replied to.'
+              : parent.data?.deletedAt
+                ? 'This message was deleted.'
+                : undefined
         }
         onSendMessage={async (content) => {
           try {

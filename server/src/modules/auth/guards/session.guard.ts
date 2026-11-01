@@ -25,6 +25,7 @@ export class SessionGuard implements CanActivate {
 
     request.user = {
       sessionId: session._id.toString(),
+      expiresAt: session.absoluteExpiresAt,
       type: session.type,
       id: session.userId ? session.userId.toString() : undefined,
     };

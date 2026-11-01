@@ -1,7 +1,5 @@
-import { EditRoomForm } from '@/features/rooms/components/EditRoomForm';
+import { RoomEditorDialog } from '@/features/rooms/components/RoomEditorDialog';
 import type { UpdateRoomDto } from '@/features/rooms/types/room.types';
-import { Modal } from '@/shared/ui/Modal';
-import { Settings } from 'lucide-react';
 import React from 'react';
 
 interface EditRoomModalProps {
@@ -22,21 +20,14 @@ export const EditRoomModal: React.FC<EditRoomModalProps> = ({
   isUpdating,
 }) => {
   return (
-    <Modal
+    <RoomEditorDialog
+      mode="edit"
       isOpen={isOpen}
-      isPending={isUpdating}
-      onClose={onClose}
-      title="Edit Room Settings"
-      description="Update your room's name and topic description."
-      icon={<Settings className="h-5 w-5" />}
-    >
-      <EditRoomForm
-        initialName={roomName}
-        initialDescription={roomDescription}
-        onSubmit={onUpdateRoom}
-        onCancel={onClose}
-        isLoading={isUpdating}
-      />
-    </Modal>
+      initialName={roomName}
+      initialDescription={roomDescription}
+      onSubmit={onUpdateRoom}
+      onCancel={onClose}
+      isLoading={isUpdating}
+    />
   );
 };

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -42,9 +43,16 @@ export class RoomsController {
   }
 
   @UseGuards(SessionGuard)
+  @Roles(UserType.REGISTERED, UserType.GUEST)
   @Get()
   findAll(@CurrentUser() user: SessionUser) {
     return this.roomsService.findAllForUser(user.id!);
+  }
+
+  @Roles(UserType.REGISTERED, UserType.GUEST)
+  @Get('public')
+  publicRooms(@Query('q') query = '') {
+    return this.roomsService.searchPublic(query);
   }
 
   @UseGuards(SessionGuard)
@@ -71,6 +79,7 @@ export class RoomsController {
     return this.roomsService.declineInvitation(roomId, invitationId, user.id!);
   }
 
+  @Roles(UserType.REGISTERED, UserType.GUEST)
   @Get(':roomId')
   findById(@Param('roomId') roomId: string, @CurrentUser() user: SessionUser) {
     return this.roomsService.findAccessible(roomId, user.id!);
@@ -96,12 +105,14 @@ export class RoomsController {
   }
 
   @UseGuards(SessionGuard)
+  @Roles(UserType.REGISTERED, UserType.GUEST)
   @Post(':roomId/join')
   joinRoom(@Param('roomId') roomId: string, @CurrentUser() user: SessionUser) {
     return this.roomsService.joinRoom(roomId, user.id!);
   }
 
   @UseGuards(SessionGuard)
+  @Roles(UserType.REGISTERED, UserType.GUEST)
   @Post(':roomId/leave')
   leaveRoom(@Param('roomId') roomId: string, @CurrentUser() user: SessionUser) {
     return this.roomsService.leaveRoom(roomId, user.id!);
@@ -117,6 +128,7 @@ export class RoomsController {
     return this.roomsService.addMember(roomId, user.id!, dto.userId);
   }
 
+  @Roles(UserType.REGISTERED, UserType.GUEST)
   @Get(':roomId/members')
   members(@Param('roomId') roomId: string, @CurrentUser() user: SessionUser) {
     return this.roomsService.members(roomId, user.id!);

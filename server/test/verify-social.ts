@@ -1,3 +1,5 @@
+import { RoomActivityService } from '../src/modules/rooms/room-activity.service';
+import { GuestLifecycleService } from '../src/modules/auth/guest-lifecycle.service';
 // Run from server: npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts
 import 'reflect-metadata';
 import dns from 'node:dns';
@@ -76,8 +78,31 @@ async function main() {
         displayName: `Social verification ${i}`,
       })),
     );
+    const activity = new RoomActivityService(
+      connection.model(
+        'Message',
+        MessageSchema,
+      ) as unknown as ConstructorParameters<typeof RoomActivityService>[0],
+      new UsersService(
+        users as unknown as ConstructorParameters<typeof UsersService>[0],
+      ),
+      new MessageEventsService(),
+    );
+    const guests = new GuestLifecycleService(
+      users as unknown as ConstructorParameters<
+        typeof GuestLifecycleService
+      >[0],
+      connection.model('Room', RoomSchema) as unknown as ConstructorParameters<
+        typeof GuestLifecycleService
+      >[1],
+      sessions as unknown as ConstructorParameters<
+        typeof GuestLifecycleService
+      >[2],
+      activity,
+    );
     const sessionService = new SessionService(
-      sessions as unknown as ConstructorParameters<typeof SessionService>[0],
+      guests,
+      sessions as unknown as ConstructorParameters<typeof SessionService>[1],
     );
     const tokens: string[] = [];
     for (const id of ids.slice(0, 3)) {
@@ -86,6 +111,7 @@ async function main() {
       sessionIds.push(result.session._id);
     }
     const guest = await sessionService.createGuestSession();
+    if (guest.session.userId) ids.push(guest.session.userId);
     tokens.push(guest.token);
     sessionIds.push(guest.session._id);
     const usersService = new UsersService(
@@ -113,6 +139,7 @@ async function main() {
       usersService,
       friendshipService,
       new RoomEventsService(),
+      activity,
     );
     const module = await Test.createTestingModule({
       controllers: [
@@ -171,8 +198,8 @@ async function main() {
     const roomPath = `/api/rooms/${prefix}`;
     await api.get(roomPath).set('Cookie', cookie(1)).expect(403);
     await api.get(roomPath).set('Cookie', cookie(0)).expect(200);
+    await api.get('/api/rooms').set('Cookie', cookie(3)).expect(200);
     for (const path of [
-      '/api/rooms',
       '/api/dms',
       '/api/friendships',
       `/api/rooms/${room._id.toString()}/messages`,

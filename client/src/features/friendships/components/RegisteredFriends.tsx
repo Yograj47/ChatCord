@@ -2,12 +2,19 @@ import { PersonRow } from '@/features/friendships/components/PersonRow';
 import {
   useFriendsController,
   type Action,
+  type View,
 } from '@/features/friendships/hooks/useFriendsController';
 import { errorMessage } from '@/features/friendships/lib/friendship-error';
 import { actionClassName } from '@/shared/ui/action-styles';
 import { ArrowRight, RefreshCw, Search, UserPlus, Users } from 'lucide-react';
 
-export function RegisteredFriends({ userId }: { userId: string }) {
+export function RegisteredFriends({
+  userId,
+  initialView = 'friends',
+}: {
+  userId: string;
+  initialView?: View;
+}) {
   const {
     view,
     input,
@@ -33,7 +40,7 @@ export function RegisteredFriends({ userId }: { userId: string }) {
     loadError,
     searchWaiting,
     changeView,
-  } = useFriendsController(userId);
+  } = useFriendsController(userId, initialView);
   const button = (label: string, kind: Action['kind'], id: string, accent = false) => (
     <button
       type="button"
@@ -48,22 +55,14 @@ export function RegisteredFriends({ userId }: { userId: string }) {
   );
 
   return (
-    <section
-      className="h-full overflow-y-auto bg-background p-4 sm:p-8"
-      aria-labelledby="friends-heading"
-    >
+    <section className="bg-background px-4 py-5 sm:px-8 sm:py-6" aria-labelledby="friends-heading">
       <div className="mx-auto max-w-3xl">
-        <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-400">
-              Your people
-            </p>
-            <h1 id="friends-heading" className="text-2xl font-semibold tracking-tight">
+            <h1 id="friends-heading" className="text-base font-semibold">
               Friends
             </h1>
-            <p className="mt-2 text-sm text-zinc-400">
-              Find your people and keep the conversation going.
-            </p>
+            <p className="mt-1 text-xs text-zinc-500">Manage friends and connection requests.</p>
           </div>
           <button
             type="button"

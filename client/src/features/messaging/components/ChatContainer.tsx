@@ -1,3 +1,4 @@
+import { PublicRoomJoin } from '@/features/rooms/components/PublicRoomJoin';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { ChatHeader } from '@/features/messaging/components/ChatHeader';
 import { MessageDialog } from '@/features/messaging/components/MessageDialog';
@@ -58,11 +59,15 @@ function ChatConversation({ requestedRoomId }: { requestedRoomId: string | null 
     room.members.some(
       (member) => member.userId === sessionData?.id && ['owner', 'moderator'].includes(member.role),
     );
+  const historySince =
+    room?.members.find((member) => member.userId === sessionData?.id)?.joinedAt ?? '';
   const messageQuery = useMessages(
     activeRoomId ?? '',
     sessionData?.id ?? '',
     isMember,
     debouncedSearch,
+    undefined,
+    historySince,
   );
   const { messages } = messageQuery;
   const messageActions = useMessageMutations(activeRoomId ?? '', sessionData?.id ?? '');
@@ -116,12 +121,13 @@ function ChatConversation({ requestedRoomId }: { requestedRoomId: string | null 
         ? 'Loading room…'
         : 'Conversation');
   const toMessage = useCallback(
-    (message: StoredMessage) => toMessageView(message, sessionData?.id, members.data),
-    [sessionData?.id, members.data],
+    (message: StoredMessage) => toMessageView(message, sessionData?.id, members.data, historySince),
+    [sessionData?.id, members.data, historySince],
   );
   const invite = () => {
     setMembersOpen(false);
-    if (activeRoomId) void navigate(`/app/invitations?view=send&room=${activeRoomId}`);
+    if (activeRoomId)
+      void navigate(`/app/notifications?section=invitations&view=send&room=${activeRoomId}`);
   };
   const update = async (payload: UpdateRoomDto) => {
     if (!activeRoomId) return;
@@ -149,26 +155,28 @@ function ChatConversation({ requestedRoomId }: { requestedRoomId: string | null 
               : peerStatus === 'offline'
                 ? 'Offline'
                 : 'Status unavailable'
-            : room?.description || (ready ? 'Connected' : 'Connecting…')
+            : room?.description || ''
         }
         onOpenEdit={() => setEditRoomOpen(true)}
-        onInvite={invite}
         canManageRoom={canManage}
         onOpenMembers={() => setMembersOpen(true)}
         memberCount={room?.members.length ?? 0}
+        searchControl={
+          isMember ? (
+            <MessageSearch
+              value={search}
+              onChange={setSearch}
+              searching={messageQuery.isFetching && Boolean(search)}
+            />
+          ) : undefined
+        }
       />
-      <div role="status" className="px-4 pt-2 text-xs text-zinc-500">
-        {ready
-          ? 'Connected'
-          : (socketError ?? (isMember ? 'Connecting…' : 'Read-only · join to participate'))}
-      </div>
-      {isMember && (
-        <MessageSearch
-          value={search}
-          onChange={setSearch}
-          searching={messageQuery.isFetching && Boolean(search)}
-        />
-      )}
+      {room &&
+        !isMember &&
+        !roomError &&
+        room.type === 'group' &&
+        room.visibility === 'public' &&
+        sessionData?.id && <PublicRoomJoin room={room} userId={sessionData.id} />}
       {(messageError || messageQuery.isError || roomError) && (
         <div role="alert" className="px-4 py-2 text-sm text-rose-300">
           {roomError
@@ -198,7 +206,7 @@ function ChatConversation({ requestedRoomId }: { requestedRoomId: string | null 
         )}
         {!messageQuery.isPending && !messageQuery.isError && isMember && messages.length === 0 && (
           <p className="p-4 text-xs text-zinc-400">
-            {debouncedSearch ? 'No matching messages.' : 'No messages yet.'}
+            {debouncedSearch ? 'No matching messages.' : 'No messages since you joined.'}
           </p>
         )}
         <MessageList
@@ -267,6 +275,7 @@ function ChatConversation({ requestedRoomId }: { requestedRoomId: string | null 
             setReplyMessageId(null);
             if (routeReplyId) void navigate(`/app/rooms/${activeRoomId}`);
           }}
+          historySince={historySince}
           nameFor={(id) =>
             id === sessionData.id
               ? 'You'

@@ -12,10 +12,11 @@ export function useFriends(userId?: string, enabled = true) {
     refetchInterval: 30000,
   });
 }
-export function useFriendRequests(userId: string) {
+export function useFriendRequests(userId?: string) {
   return useQuery({
     queryKey: SOCIAL_QUERY_KEYS.requests(userId),
     queryFn: socialApi.requests,
+    enabled: Boolean(userId),
     refetchInterval: 30000,
   });
 }

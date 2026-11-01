@@ -1,4 +1,5 @@
-import { GlobalSearchModal } from '@/app/components/GlobalSearchModal';
+import { GuestSessionBanner } from '@/features/auth/components/GuestSessionBanner';
+import { GlobalSearchPanel } from '@/app/components/GlobalSearchPanel';
 import { Header } from '@/app/components/Header';
 import { Sidebar } from '@/app/components/Sidebar';
 import { useSession } from '@/features/auth/hooks/useSession';
@@ -11,7 +12,7 @@ import { Outlet } from 'react-router-dom';
 export const AppLayout: React.FC = () => {
   const { mobileView } = useLayoutStore();
   const { sessionData } = useSession();
-  useSocket(sessionData?.type === 'registered');
+  useSocket(Boolean(sessionData?.id));
 
   return (
     <div className="h-dvh w-vw max-h-dvh max-w-vw bg-background text-zinc-100 flex overflow-hidden font-sans antialiased selection:bg-indigo-500/30">
@@ -31,6 +32,7 @@ export const AppLayout: React.FC = () => {
         `}
       >
         <Header />
+        {sessionData?.type === 'guest' && <GuestSessionBanner />}
 
         <div className="flex-1 flex min-h-0 h-full overflow-hidden relative">
           <main className="flex-1 flex flex-col bg-background min-w-0 h-full overflow-hidden relative">
@@ -39,7 +41,7 @@ export const AppLayout: React.FC = () => {
         </div>
       </div>
 
-      <GlobalSearchModal />
+      <GlobalSearchPanel />
       <CreateRoomModal />
     </div>
   );

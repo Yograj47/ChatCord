@@ -33,18 +33,16 @@ export const Modal: React.FC<ModalProps> = ({
       isPending={isPending}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
-      className={`m-auto max-h-[90dvh] w-[calc(100%-2rem)] ${maxWidth} overflow-y-auto bg-card text-zinc-100 border border-zinc-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-md`}
+      className={`relative m-auto max-h-[90dvh] w-[calc(100%-2rem)] ${maxWidth} overflow-x-hidden overflow-y-auto bg-card text-zinc-100 border border-zinc-800/80 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop:bg-black/80 backdrop:backdrop-blur-md`}
     >
-      <div className="absolute -top-20 -right-20 w-48 h-48 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-800/80">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-zinc-800/80">
+        <div className="flex min-w-0 items-center gap-3">
           {icon && (
-            <div className="p-2 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400">
+            <div className="shrink-0 p-2 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400">
               {icon}
             </div>
           )}
-          <div>
+          <div className="min-w-0 break-words">
             <h2
               id={titleId}
               className="text-base font-semibold text-zinc-100 font-mono tracking-wider"
@@ -63,7 +61,7 @@ export const Modal: React.FC<ModalProps> = ({
           aria-label="Close dialog"
           disabled={isPending}
           onClick={onClose}
-          className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-800/50"
+          className="shrink-0 text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-800/50"
         >
           <X className="h-5 w-5" />
         </button>

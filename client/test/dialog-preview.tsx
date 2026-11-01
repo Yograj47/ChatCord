@@ -1,5 +1,6 @@
 // Local-only fixture using production components; no backend requests or real data.
 import { StrictMode, useState } from 'react';
+import { AppSplash } from '@/shared/ui/AppSplash';
 import { createRoot } from 'react-dom/client';
 import { Modal } from '@/shared/ui/Modal';
 import { CreateRoomForm } from '@/features/rooms/components/CreateRoomForm';
@@ -47,6 +48,6 @@ export function Preview() {
 }
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Preview />
+    {new URLSearchParams(window.location.search).has('splash') ? <AppSplash /> : <Preview />}
   </StrictMode>,
 );

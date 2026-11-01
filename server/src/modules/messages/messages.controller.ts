@@ -31,7 +31,7 @@ interface SessionUser {
 @ApiTags('messages')
 @Controller('rooms/:roomId/messages')
 @UseGuards(SessionGuard, RolesGuard)
-@Roles(UserType.REGISTERED)
+@Roles(UserType.REGISTERED, UserType.GUEST)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 

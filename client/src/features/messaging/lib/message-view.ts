@@ -5,13 +5,17 @@ export function toMessageView(
   message: StoredMessage,
   viewerId?: string,
   members?: RoomMemberProfile[],
+  historySince?: string,
 ): Message {
   const name =
     message.senderId === viewerId
       ? 'You'
       : (members?.find((member) => member.id === message.senderId)?.displayName ?? 'Member');
+  const sender = members?.find((member) => member.id === message.senderId);
   return {
     id: message._id,
+    kind: message.kind,
+    systemEvent: message.systemEvent,
     roomId: message.roomId,
     viewerId: viewerId,
     replyToId: message.replyTo,
@@ -32,6 +36,8 @@ export function toMessageView(
     ),
     content: message.content,
     senderName: name,
+    historySince,
+    senderAvatarUrl: sender?.avatar?.url,
     senderInitials: name.slice(0, 2).toUpperCase(),
     isSelf: message.senderId === viewerId,
     timestamp: new Date(message.createdAt).toLocaleTimeString([], {

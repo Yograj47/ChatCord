@@ -71,3 +71,19 @@ describe('message history and mutation cache', () => {
     expect(client.getQueryState(MESSAGE_QUERY_KEYS.room('room', 'user'))?.isInvalidated).toBe(true);
   });
 });
+
+it('separates membership history caches and hides pre-join or disabled history', async () => {
+  vi.spyOn(messagesApi, 'getPage').mockResolvedValue({ items: [message], nextCursor: null });
+  const { wrapper } = setup();
+  const { result, rerender } = renderHook(
+    ({ since, enabled }) => useMessages('room', 'user', enabled, '', undefined, since),
+    { wrapper, initialProps: { since: '2026-10-31T11:00:00Z', enabled: true } },
+  );
+  await waitFor(() => expect(result.current.messages).toHaveLength(1));
+  rerender({ since: '2026-10-31T13:00:00Z', enabled: true });
+  expect(result.current.messages).toEqual([]);
+  await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  expect(result.current.messages).toEqual([]);
+  rerender({ since: '2026-10-31T11:00:00Z', enabled: false });
+  expect(result.current.messages).toEqual([]);
+});

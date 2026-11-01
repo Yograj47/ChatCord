@@ -26,6 +26,9 @@ export class User {
   })
   type!: UserType;
 
+  @Prop({ index: true })
+  expiresAt?: Date;
+
   @Prop({
     required: false,
     unique: true,

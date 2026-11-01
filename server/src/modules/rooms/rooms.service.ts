@@ -1,3 +1,4 @@
+import { RoomActivityService } from './room-activity.service';
 import {
   BadRequestException,
   ConflictException,
@@ -31,6 +32,7 @@ export class RoomsService {
     private readonly usersService: UsersService,
     private readonly friendships: FriendshipsService,
     private readonly roomEvents: RoomEventsService,
+    private readonly activity: RoomActivityService,
   ) {}
 
   async presencePeers(userId: string): Promise<string[]> {
@@ -48,6 +50,7 @@ export class RoomsService {
   }
   async members(roomId: string, userId: string) {
     const room = await this.findById(roomId);
+    await this.assertGuestAccess(room, userId);
     this.member(room, userId);
     const profiles = await this.usersService.publicProfiles(
       room.members.map((member) => member.userId.toString()),
@@ -61,6 +64,8 @@ export class RoomsService {
       return {
         id: memberId,
         username: profile?.username,
+        type: profile?.type,
+        avatar: profile?.avatar,
         displayName: profile?.displayName ?? 'Deleted user',
         role: member.role,
         joinedAt: member.joinedAt,
@@ -94,9 +99,20 @@ export class RoomsService {
     return room;
   }
 
+  async assertGuestAccess(room: RoomDocument, userId: string) {
+    const user = await this.usersService.findById(userId);
+    if (
+      user?.type === UserType.GUEST &&
+      (room.type !== RoomType.GROUP ||
+        room.visibility !== RoomVisibility.PUBLIC)
+    )
+      throw new ForbiddenException('Guests can only access public rooms.');
+  }
+
   async findAccessible(roomId: string, userId: string) {
     this.id(userId);
     const room = await this.findById(roomId);
+    await this.assertGuestAccess(room, userId);
     if (room.type === RoomType.DM || room.visibility === RoomVisibility.PRIVATE)
       this.member(room, userId);
     return room;
@@ -119,6 +135,29 @@ export class RoomsService {
     });
   }
 
+  async searchPublic(query: string) {
+    if (typeof query !== 'string' || query.length > 100)
+      throw new BadRequestException('Search must be at most 100 characters.');
+    return this.roomModel
+      .find({
+        type: RoomType.GROUP,
+        visibility: RoomVisibility.PUBLIC,
+        ...(query.trim()
+          ? {
+              name: {
+                $regex: query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+                $options: 'i',
+              },
+            }
+          : {}),
+      })
+      .select('_id name description')
+      .sort({ name: 1 })
+      .limit(50)
+      .lean()
+      .exec();
+  }
+
   async findAllForUser(userId: string) {
     return this.roomModel
       .find({ 'members.userId': this.id(userId) })
@@ -126,11 +165,49 @@ export class RoomsService {
       .exec();
   }
 
+  async messageAccess(roomId: string, userId: string) {
+    const room = await this.findAccessible(roomId, userId);
+    const membership = this.member(room, userId);
+    if (
+      !membership.joinedAt ||
+      !Number.isFinite(new Date(membership.joinedAt).getTime())
+    )
+      throw new ForbiddenException('Room membership has no valid join time.');
+    return { room, joinedAt: new Date(membership.joinedAt) };
+  }
+
+  async messageAudience(roomId: string, createdAt: Date) {
+    if (!createdAt || !Number.isFinite(new Date(createdAt).getTime()))
+      return new Set<string>();
+    const room = await this.findById(roomId);
+    const eligible = room.members.filter(
+      (member) =>
+        member.joinedAt &&
+        new Date(member.joinedAt).getTime() <= new Date(createdAt).getTime(),
+    );
+    const profiles = await this.usersService.publicProfiles(
+      eligible.map((member) => member.userId.toString()),
+    );
+    return new Set(
+      profiles
+        .filter(
+          (profile) =>
+            profile.type !== UserType.GUEST ||
+            (room.type === RoomType.GROUP &&
+              room.visibility === RoomVisibility.PUBLIC &&
+              profile.expiresAt &&
+              profile.expiresAt > new Date()),
+        )
+        .map((profile) => profile._id.toString()),
+    );
+  }
+
   async findMembership(
     roomId: string,
     userId: string,
   ): Promise<RoomMemberRole | null> {
     const room = await this.findById(roomId);
+    await this.assertGuestAccess(room, userId);
     const id = this.id(userId).toHexString();
     return (
       room.members.find((member) => member.userId.toString() === id)?.role ??
@@ -192,7 +269,7 @@ export class RoomsService {
     const id = this.id(userId);
     if (room.type === RoomType.DM || room.visibility !== RoomVisibility.PUBLIC)
       throw new ForbiddenException('This room requires an invitation.');
-    return this.changed(
+    const updated = await this.changed(
       room,
       await this.roomModel
         .findOneAndUpdate(
@@ -215,6 +292,8 @@ export class RoomsService {
         )
         .exec(),
     );
+    await this.activity.record(room._id.toString(), 'joined', userId);
+    return updated;
   }
 
   async leaveRoom(roomId: string, userId: string) {
@@ -225,7 +304,7 @@ export class RoomsService {
       throw new ForbiddenException(
         'Room owner cannot leave without transferring ownership.',
       );
-    return this.changed(
+    const updated = await this.changed(
       room,
       await this.roomModel
         .findOneAndUpdate(
@@ -244,12 +323,14 @@ export class RoomsService {
         .exec(),
       userId,
     );
+    await this.activity.record(room._id.toString(), 'left', userId);
+    return updated;
   }
 
   async updateRoom(roomId: string, userId: string, dto: UpdateRoomDto) {
     const room = await this.findById(roomId);
     this.manager(room, userId);
-    return this.changed(
+    const updated = await this.changed(
       room,
       await this.roomModel
         .findOneAndUpdate(
@@ -271,6 +352,59 @@ export class RoomsService {
         )
         .exec(),
     );
+    if (updated.name !== room.name)
+      await this.activity.record(
+        updated._id.toString(),
+        'renamed',
+        userId,
+        updated.name,
+      );
+    const changes: string[] = [];
+    if ((updated.description ?? '') !== (room.description ?? ''))
+      changes.push('description updated');
+    if (updated.visibility !== room.visibility)
+      changes.push(`room is now ${updated.visibility}`);
+    for (const capability of updated.capabilities.filter(
+      (value) => !room.capabilities.includes(value),
+    ))
+      changes.push(`${capability} messages enabled`);
+    for (const capability of room.capabilities.filter(
+      (value) => !updated.capabilities.includes(value),
+    ))
+      changes.push(`${capability} messages disabled`);
+    if (changes.length)
+      await this.activity.record(
+        updated._id.toString(),
+        'permissions',
+        userId,
+        changes.join(', '),
+      );
+    if (dto.visibility === RoomVisibility.PRIVATE) {
+      const profiles = await this.usersService.publicProfiles(
+        updated.members.map((member) => member.userId.toString()),
+      );
+      const guestIds = profiles
+        .filter((profile) => profile.type === UserType.GUEST)
+        .map((profile) => profile._id);
+      if (guestIds.length) {
+        await this.roomModel.updateOne(
+          { _id: updated._id },
+          { $pull: { members: { userId: { $in: guestIds } } } },
+        );
+        for (const id of guestIds) {
+          this.roomEvents.changed(updated._id.toString(), id.toString());
+          await this.activity.record(
+            updated._id.toString(),
+            'removed',
+            userId,
+            undefined,
+            id.toString(),
+          );
+        }
+        return this.findById(updated._id.toString());
+      }
+    }
+    return updated;
   }
 
   async deleteRoom(roomId: string, userId: string) {
@@ -363,7 +497,7 @@ export class RoomsService {
   async acceptInvitation(roomId: string, invitationId: string, userId: string) {
     const room = await this.findById(roomId);
     const id = this.id(userId);
-    return this.changed(
+    const updated = await this.changed(
       room,
       await this.roomModel
         .findOneAndUpdate(
@@ -393,6 +527,8 @@ export class RoomsService {
         )
         .exec(),
     );
+    await this.activity.record(room._id.toString(), 'joined', userId);
+    return updated;
   }
 
   async declineInvitation(
@@ -428,7 +564,7 @@ export class RoomsService {
       throw new ForbiddenException('Only the owner can remove moderators.');
     if (this.member(room, targetUserId).role === RoomMemberRole.OWNER)
       throw new ForbiddenException('The room owner cannot be removed.');
-    return this.changed(
+    const updated = await this.changed(
       room,
       await this.roomModel
         .findOneAndUpdate(
@@ -458,6 +594,14 @@ export class RoomsService {
         .exec(),
       targetUserId,
     );
+    await this.activity.record(
+      room._id.toString(),
+      'removed',
+      userId,
+      undefined,
+      targetUserId,
+    );
+    return updated;
   }
 
   async updateMemberRole(
@@ -468,13 +612,16 @@ export class RoomsService {
   ) {
     if (![RoomMemberRole.MEMBER, RoomMemberRole.MODERATOR].includes(role))
       throw new BadRequestException('Invalid member role.');
+    const target = await this.usersService.findById(targetUserId);
+    if (target?.type === UserType.GUEST && role !== RoomMemberRole.MEMBER)
+      throw new ForbiddenException('Guests cannot manage rooms.');
     const room = await this.findById(roomId);
     this.manager(room, userId, true);
     if (this.member(room, targetUserId).role === RoomMemberRole.OWNER)
       throw new ForbiddenException(
         'Room ownership cannot be changed through this operation.',
       );
-    return this.changed(
+    const updated = await this.changed(
       room,
       await this.roomModel
         .findOneAndUpdate(
@@ -502,6 +649,15 @@ export class RoomsService {
         )
         .exec(),
     );
+    if (this.member(room, targetUserId).role !== role)
+      await this.activity.record(
+        room._id.toString(),
+        'role',
+        userId,
+        role,
+        targetUserId,
+      );
+    return updated;
   }
 
   async createDm(userId: string, targetUserId: string) {
@@ -555,6 +711,7 @@ export class RoomsService {
   }
 
   async assertCanSend(room: RoomDocument, userId: string) {
+    await this.assertGuestAccess(room, userId);
     this.member(room, userId);
     if (room.type === RoomType.DM) {
       const other = room.members.find(

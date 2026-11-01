@@ -40,6 +40,7 @@ export async function createControllerApp(controller: Type<unknown>) {
     ),
     users: mockMethods('findById', 'completeOnboarding', 'searchByUsername'),
     rooms: mockMethods(
+      'searchPublic',
       'createRoom',
       'findAllForUser',
       'findAccessible',
@@ -147,7 +148,7 @@ export type ControllerApp = Awaited<ReturnType<typeof createControllerApp>>;
 export function protectedRoutes(
   fixture: () => ControllerApp,
   routes: readonly Route[],
-  guestStatus = 403,
+  guestStatus: number | null = 403,
 ) {
   it.each(routes)(
     'protects %s %s from missing, expired and guest sessions',
@@ -155,7 +156,8 @@ export function protectedRoutes(
       const f = fixture();
       await f.call(method, path, undefined, null).expect(401);
       await f.call(method, path, undefined, 'expired').expect(401);
-      await f.call(method, path, undefined, 'guest').expect(guestStatus);
+      if (guestStatus !== null)
+        await f.call(method, path, undefined, 'guest').expect(guestStatus);
       for (const methods of Object.values(f.services))
         for (const mock of Object.values(methods))
           expect(mock).not.toHaveBeenCalled();

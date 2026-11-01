@@ -128,3 +128,42 @@
     @apply font-sans;
   }
 }
+
+@keyframes chatcord-splash-breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes chatcord-splash-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}
+
+.chatcord-splash-mark {
+  animation: chatcord-splash-breathe 2.4s ease-in-out infinite;
+}
+
+.chatcord-splash-shimmer {
+  animation: chatcord-splash-shimmer 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chatcord-splash-mark,
+  .chatcord-splash-shimmer {
+    animation: none;
+  }
+  .chatcord-splash-shimmer {
+    left: 25%;
+  }
+}

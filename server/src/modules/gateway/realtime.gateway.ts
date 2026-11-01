@@ -1,3 +1,4 @@
+import { SessionType } from '../auth/schemas/session.schema';
 import {
   ConnectedSocket,
   MessageBody,
@@ -25,7 +26,6 @@ import {
 import { RoomEventsService } from '../rooms/room-events.service';
 import { SocketSessionGuard } from './socket-session.guard';
 import { GatewayExceptionFilter } from './gateway-exception.filter';
-import { SessionType } from '../auth/schemas/session.schema';
 import {
   RoomEventDto,
   SendMessageEventDto,
@@ -38,6 +38,7 @@ interface GatewaySocketData {
   sessionId?: string;
   sessionType?: string;
   typingRooms?: Set<string>;
+  expiryTimer?: ReturnType<typeof setTimeout>;
 }
 
 interface GatewayServerToClientEvents {
@@ -91,21 +92,42 @@ export class RealtimeGateway
   private namespace!: Namespace;
   afterInit(namespace: Namespace) {
     this.namespace = namespace;
-    this.messageEvents.bind((roomId, event, message) =>
-      namespace.to(roomId).emit(event, message),
-    );
+    this.messageEvents.bind(async (roomId, event, message) => {
+      const audience = await this.roomsService.messageAudience(
+        roomId,
+        message.createdAt,
+      );
+      const subscribers = await namespace.in(roomId).fetchSockets();
+      for (const subscriber of subscribers) {
+        const data = subscriber.data as GatewaySocketData;
+        if (data.userId && audience.has(data.userId))
+          namespace.to(subscriber.id).emit(event, message);
+      }
+    });
     namespace.use((client, next) => {
       void this.socketAuthService
         .authenticate(client)
         .then((session) => {
-          if (session.type !== SessionType.REGISTERED || !session.userId) {
-            next(new Error('Registered user authentication required.'));
+          if (!session.userId) {
+            next(new Error('A valid session is required.'));
             return;
           }
           const data = client.data as GatewaySocketData;
           data.userId = session.userId.toString();
           data.sessionId = session._id.toString();
           data.sessionType = session.type;
+          if (session.type === SessionType.GUEST) {
+            data.expiryTimer = setTimeout(
+              () => {
+                client.emit('connection-error', {
+                  message: 'Guest session expired. Sign in to continue.',
+                });
+                client.disconnect(true);
+              },
+              Math.max(0, session.absoluteExpiresAt.getTime() - Date.now()),
+            );
+            data.expiryTimer.unref();
+          }
           next();
         })
         .catch(() => next(new Error('Authentication failed.')));
@@ -139,7 +161,7 @@ export class RealtimeGateway
 
       if (!userId) {
         client.emit('connection-error', {
-          message: 'Registered user authentication required.',
+          message: 'A valid session is required.',
         });
         client.disconnect(true);
         return;
@@ -165,6 +187,7 @@ export class RealtimeGateway
   }
 
   async handleDisconnect(client: GatewaySocket): Promise<void> {
+    if (client.data.expiryTimer) clearTimeout(client.data.expiryTimer);
     const userId = client.data.userId;
 
     if (!userId) {

@@ -63,3 +63,12 @@ export function useRoomMembers(roomId: string | null, userId?: string, enabled =
     retry: false,
   });
 }
+
+export function usePublicRooms(query: string, enabled = true) {
+  return useQuery({
+    queryKey: ROOM_QUERY_KEYS.public(query),
+    queryFn: () => roomsApi.searchPublic(query),
+    enabled,
+    staleTime: 30000,
+  });
+}

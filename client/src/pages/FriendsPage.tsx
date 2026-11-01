@@ -1,12 +1,13 @@
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { RegisteredFriends } from '@/features/friendships/components/RegisteredFriends';
 import { errorMessage } from '@/features/friendships/lib/friendship-error';
+import type { View } from '@/features/friendships/hooks/useFriendsController';
 import { showError } from '@/shared/lib/toast';
 import { actionClassName } from '@/shared/ui/action-styles';
 import { Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
-export function FriendsPage() {
+export function FriendsPage({ initialView = 'friends' }: { initialView?: View }) {
   const { sessionData, logout, isLogoutPending } = useAuth();
   const navigate = useNavigate();
   if (sessionData?.type !== 'registered' || !sessionData.id)
@@ -34,5 +35,7 @@ export function FriendsPage() {
         </Link>
       </div>
     );
-  return <RegisteredFriends key={sessionData.id} userId={sessionData.id} />;
+  return (
+    <RegisteredFriends key={sessionData.id} userId={sessionData.id} initialView={initialView} />
+  );
 }

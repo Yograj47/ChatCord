@@ -1,43 +1,41 @@
 import { LogoMark } from '@/shared/ui/LogoMark';
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 
-export const AuthLayout: React.FC = () => {
+export function AuthLayout() {
   return (
-    <div className="min-h-screen w-full bg-[#090a0f] text-zinc-100 flex flex-col justify-between items-center p-6 md:p-10 font-sans antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
-      <header className="w-full max-w-5xl flex justify-between items-center">
-        <div className="flex items-center space-x-3 group cursor-pointer">
-          <div className="p-1 rounded-xl bg-linear-to-tr from-indigo-600/30 to-indigo-500/10 border border-indigo-500/30 shadow-lg shadow-indigo-500/10 transition-transform group-hover:scale-105">
-            <LogoMark size={32} />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <span className="font-bold text-xl tracking-wider text-zinc-100 font-mono">
-              CHATCORD
-            </span>
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50" />
-          </div>
+    <div className="flex min-h-dvh flex-col bg-background font-sans text-zinc-100 antialiased selection:bg-indigo-500/30">
+      <header className="sticky top-0 z-50 w-full border-b border-zinc-800/60 bg-zinc-950/75 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
+          <Link to="/" aria-label="ChatCord home" className="inline-flex items-center gap-2.5">
+            <LogoMark size={28} />
+            <span className="font-mono text-sm font-bold tracking-wide">CHATCORD</span>
+          </Link>
+          <nav
+            aria-label="Welcome navigation"
+            className="flex items-center gap-4 text-xs text-zinc-400 sm:gap-6"
+          >
+            <a href="/#features" className="hidden transition hover:text-zinc-200 sm:block">
+              What you can do
+            </a>
+            <a href="/#how-it-works" className="transition hover:text-zinc-200">
+              How it works
+            </a>
+            <a
+              href="/#get-started"
+              className="rounded-lg border border-zinc-800 px-3 py-2 text-zinc-300 transition hover:border-zinc-600"
+            >
+              Get started
+            </a>
+          </nav>
         </div>
       </header>
-
-      <main className="w-full max-w-105 my-auto py-8">
-        <div className="relative bg-card border border-zinc-800/80 rounded-2xl p-8 shadow-2xl shadow-black/80 backdrop-blur-xl overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-          <Outlet />
-        </div>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-5 sm:px-8">
+        <Outlet />
       </main>
-
-      <footer className="w-full max-w-5xl text-center py-2 text-xs text-zinc-500 flex flex-col sm:flex-row justify-between items-center gap-3 border-t border-zinc-900/80 pt-6">
-        <span>&copy; {new Date().getFullYear()} ChatCord. All rights reserved.</span>
-        <div className="flex space-x-5">
-          <a href="#" className="hover:text-zinc-300 transition-colors">
-            Privacy Policy
-          </a>
-          <a href="#" className="hover:text-zinc-300 transition-colors">
-            Terms of Service
-          </a>
-        </div>
+      <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-zinc-800/60 px-5 py-7 text-[11px] text-zinc-500 sm:px-8">
+        <span>© {new Date().getFullYear()} ChatCord</span>
+        <span>A shared space for real conversations.</span>
       </footer>
     </div>
   );
-};
+}

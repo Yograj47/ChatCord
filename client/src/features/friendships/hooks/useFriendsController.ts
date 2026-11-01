@@ -20,8 +20,8 @@ export type Action = {
   kind: 'send' | 'accept' | 'decline' | 'cancel' | 'remove' | 'message';
   id: string;
 };
-export function useFriendsController(userId: string) {
-  const [view, setView] = useState<View>('friends');
+export function useFriendsController(userId: string, initialView: View = 'friends') {
+  const [view, setView] = useState<View>(initialView);
   const [input, setInput] = useState('');
 
   const [removeId, setRemoveId] = useState<string | null>(null);

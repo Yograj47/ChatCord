@@ -46,3 +46,11 @@ npx ts-node --transpile-only -r tsconfig-paths/register test/verify-realtime.ts 
 ```
 
 Add `--serve` and run `node test/live-preview.mjs` from `client` for browser checks. The harness prints temporary account/room links and cleans up after 20 minutes. In an interactive terminal, type `stop` and Enter to finish earlier; automation runners need a PTY (`tty: true`) to keep stdin open. No real users or conversations are used.
+
+## History visibility rule
+
+Every room and DM limits message visibility to createdAt >= the current membership joinedAt, regardless of guest or registered account. This applies to list/page/search/detail, reply targets and reply pages, reactions, edits and deletion. Leave/rejoin starts a fresh window. Live updates are delivered only to subscribed current members eligible to view the original message, so editing an older message does not expose it to a newcomer. Client query caches are separated by membership timestamp. Existing messages are retained for members whose join time allows them to see them.
+
+## Room activity notices
+
+Stored messages may have kind=system and a systemEvent of joined, left, removed, expired, renamed, permissions or role. Server code generates these after successful room changes, using username snapshots. They appear as compact colored notices with a small timestamp and no author avatar or actions. They are paged/searched under the same join-time visibility rules as other messages. Public APIs reject forged metadata and prohibit replies, reactions, edits and deletion of notices. Socket reconnect/subscription changes alone do not generate activity.

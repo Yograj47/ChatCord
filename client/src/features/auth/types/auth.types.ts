@@ -28,6 +28,7 @@ export interface User {
 }
 
 export interface SessionResponse {
+  expiresAt?: string;
   id?: string;
   sessionId: string;
   type: 'guest' | 'registered';

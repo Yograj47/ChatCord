@@ -27,12 +27,16 @@ export class MessagesService {
     senderId: string,
     dto: CreateMessageDto,
   ): Promise<MessageDocument> {
-    const room = await this.roomsService.findById(roomId);
-
+    const { room, joinedAt } = await this.roomsService.messageAccess(
+      roomId,
+      senderId,
+    );
     await this.roomsService.assertCanSend(room, senderId);
 
     if (dto.replyTo) {
-      const parent = await this.findMessage(roomId, dto.replyTo);
+      const parent = await this.findMessage(roomId, dto.replyTo, joinedAt);
+      if (parent.kind === 'system')
+        throw new ForbiddenException('System messages cannot be replied to.');
       if (parent.deletedAt)
         throw new NotFoundException('Reply target was deleted.');
     }
@@ -44,15 +48,17 @@ export class MessagesService {
     });
 
     const saved = await message.save();
-    this.events.emit(roomId, 'new-message', saved);
+    await this.events.emit(roomId, 'new-message', saved);
     return saved;
   }
 
   async page(roomId: string, userId: string, query: MessageQueryDto) {
-    await this.assertMembership(roomId, userId);
+    const { joinedAt } = await this.roomsService.messageAccess(roomId, userId);
+    if (query.replyTo) await this.findMessage(roomId, query.replyTo, joinedAt);
     const limit = query.limit ?? 30;
     const filter = {
       roomId: new Types.ObjectId(roomId),
+      createdAt: { $gte: joinedAt },
       ...(query.before
         ? { _id: { $lt: new Types.ObjectId(query.before) } }
         : {}),
@@ -78,8 +84,8 @@ export class MessagesService {
   }
 
   async getMessage(roomId: string, messageId: string, userId: string) {
-    await this.assertMembership(roomId, userId);
-    return this.findMessage(roomId, messageId);
+    const { joinedAt } = await this.roomsService.messageAccess(roomId, userId);
+    return this.findMessage(roomId, messageId, joinedAt);
   }
 
   async react(
@@ -89,7 +95,7 @@ export class MessagesService {
     emoji: string,
     add: boolean,
   ) {
-    await this.assertMembership(roomId, userId);
+    const { joinedAt } = await this.roomsService.messageAccess(roomId, userId);
     const reaction = { emoji, userId: new Types.ObjectId(userId) };
     const message = await this.messageModel
       .findOneAndUpdate(
@@ -97,6 +103,8 @@ export class MessagesService {
           _id: new Types.ObjectId(messageId),
           roomId: new Types.ObjectId(roomId),
           deletedAt: null,
+          createdAt: { $gte: joinedAt },
+          kind: { $ne: 'system' },
         },
         add
           ? { $addToSet: { reactions: reaction } }
@@ -105,7 +113,7 @@ export class MessagesService {
       )
       .exec();
     if (!message) throw new NotFoundException('Message not found.');
-    this.events.emit(roomId, 'message-updated', message);
+    await this.events.emit(roomId, 'message-updated', message);
     return message;
   }
 
@@ -113,10 +121,13 @@ export class MessagesService {
     roomId: string,
     userId: string,
   ): Promise<MessageDocument[]> {
-    await this.assertMembership(roomId, userId);
+    const { joinedAt } = await this.roomsService.messageAccess(roomId, userId);
 
     return this.messageModel
-      .find({ roomId: new Types.ObjectId(roomId) })
+      .find({
+        roomId: new Types.ObjectId(roomId),
+        createdAt: { $gte: joinedAt },
+      })
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -127,9 +138,9 @@ export class MessagesService {
     userId: string,
     dto: UpdateMessageDto,
   ): Promise<MessageDocument> {
-    await this.assertMembership(roomId, userId);
+    const { joinedAt } = await this.roomsService.messageAccess(roomId, userId);
 
-    const message = await this.findMessage(roomId, messageId);
+    const message = await this.findMessage(roomId, messageId, joinedAt);
     this.assertSender(message, userId);
 
     const updated = await this.messageModel
@@ -145,7 +156,7 @@ export class MessagesService {
       )
       .exec();
     if (!updated) throw new NotFoundException('Message was deleted.');
-    this.events.emit(roomId, 'message-updated', updated);
+    await this.events.emit(roomId, 'message-updated', updated);
     return updated;
   }
 
@@ -154,9 +165,9 @@ export class MessagesService {
     messageId: string,
     userId: string,
   ): Promise<void> {
-    await this.assertMembership(roomId, userId);
+    const { joinedAt } = await this.roomsService.messageAccess(roomId, userId);
 
-    const message = await this.findMessage(roomId, messageId);
+    const message = await this.findMessage(roomId, messageId, joinedAt);
     this.assertSender(message, userId);
 
     const deleted = await this.messageModel
@@ -178,28 +189,19 @@ export class MessagesService {
       )
       .exec();
     if (!deleted) throw new NotFoundException('Message was already deleted.');
-    this.events.emit(roomId, 'message-updated', deleted);
-  }
-
-  private async assertMembership(
-    roomId: string,
-    userId: string,
-  ): Promise<void> {
-    const membership = await this.roomsService.findMembership(roomId, userId);
-
-    if (!membership) {
-      throw new ForbiddenException('You are not a member of this room.');
-    }
+    await this.events.emit(roomId, 'message-updated', deleted);
   }
 
   private async findMessage(
     roomId: string,
     messageId: string,
+    joinedAt: Date,
   ): Promise<MessageDocument> {
     const message = await this.messageModel
       .findOne({
         _id: new Types.ObjectId(messageId),
         roomId: new Types.ObjectId(roomId),
+        createdAt: { $gte: joinedAt },
       })
       .exec();
 
@@ -211,6 +213,8 @@ export class MessagesService {
   }
 
   private assertSender(message: MessageDocument, userId: string): void {
+    if (message.kind === 'system')
+      throw new ForbiddenException('System messages cannot be modified.');
     if (message.senderId.toString() !== userId) {
       throw new ForbiddenException('You can only modify your own messages.');
     }

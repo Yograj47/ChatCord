@@ -216,9 +216,9 @@ Friendship routes and response formats are documented in [Friendships API](serve
 
 All eight findings in the [social module review](docs/social-module-review.md) have implemented fixes. The [social API guide](docs/social-api.md) documents DM policy, consent-based invitations, identifiers, and verification.
 
-Open **Friends** in the sidebar for friend lists, incoming/outgoing requests, and username search. The [Friends frontend guide](docs/friends-frontend.md) covers behavior and the synthetic browser verification workflow.
+Open **Notifications / Friends** in the main header for friend lists, incoming/outgoing requests, and username search. The [Friends frontend guide](docs/friends-frontend.md) covers behavior and the synthetic browser verification workflow.
 
-Open **Invitations** for received room invitations and sending invitations from groups you manage. Owners/moderators can also use **Invite people** in a room header. See the [room invitations frontend guide](docs/invitations-frontend.md).
+Open **Notifications / Invitations** for received room invitations and sending invitations from groups you manage. Owners/moderators can also use **Invite people** in the members dialog. See the [room invitations frontend guide](docs/invitations-frontend.md).
 
 Use the room-header member count for [Members and permissions](docs/room-permissions.md). The [live realtime verification guide](docs/realtime-verification.md) documents the real MongoDB/Redis browser and Socket.IO checks and fixture cleanup.
 
@@ -271,10 +271,10 @@ Repeat the search check from `server` with `npx ts-node --transpile-only -r tsco
 
 Repeat the separate live social check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts`. It is not part of the controller-only Jest suite.
 
-- [x] Backend controller HTTP test suite (128 passing across six suites in server/test/controllers)
+- [x] Backend controller HTTP test suite (129 passing across six suites in server/test/controllers)
 - [x] Full API integration tests with real persistence (19 HTTP workflows using the actual AppModule, MongoDB and Redis)
 - [x] Live DM Socket.IO integration checks (MongoDB and Redis)
-- [x] Frontend behavior regression tests (39 passing across seven files)
+- [x] Frontend behavior regression tests (73 passing across fifteen files)
 - [ ] End-to-end tests
 
 Frontend commands and verification scope are documented in [frontend verification](client/test/README.md). Route splitting replaces the previous oversized single bundle; `npm run check:bundle` checks the built JavaScript chunks without suppressing Vite’s warning threshold.
@@ -324,3 +324,19 @@ Merge into main
  ↓
 Update tracker
 ```
+
+## Workspace UI updates
+
+The app opens with an animated logo splash that respects reduced motion. The sidebar account menu provides Settings and Log out. Settings includes profile editing, a photo option marked Coming soon, and Google-managed password guidance. The sidebar shows usernames and one account presence indicator, without room search or creation shortcuts. Friends and Invitations are available together under the main header Notifications button.
+
+### Guest workspace
+
+Guests receive a random temporary username and can search, join and chat in public rooms. The session expires 30 minutes after creation; a countdown and Google sign-in action are shown. Guests have no account settings, room creation or social/DM actions. Expired guest identities, sessions and memberships are cleaned up automatically; message history remains. Live verification passed 129 controller tests, 21 real-persistence workflows (including guest Socket.IO send/expiry), and 64 frontend behavior tests.
+
+### Message history visibility
+
+All room types enforce history from the current membership join time. Guests and registered users cannot read or interact with earlier messages, including via search, pagination, direct IDs, replies or live updates. Leaving and rejoining starts a fresh history window. Public-room member dialogs hide the join-policy selector and explain this history rule.
+
+### Room activity notices
+
+Small, muted notices appear in the chat for joins, leaves, removals, guest-session expiry, role changes, room renames and permission changes. These notices are saved and delivered live, follow the join-time history rule, and cannot be forged, edited, deleted, replied to or reacted to by users. Reconnecting does not count as joining again.

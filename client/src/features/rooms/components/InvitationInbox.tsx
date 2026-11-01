@@ -31,11 +31,11 @@ export function InvitationInbox({ userId }: { userId: string }) {
         )}
       </div>
       {invitations.isSuccess && invitations.data.length === 0 && (
-        <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
-          <Mail className="mx-auto mb-3 h-8 w-8 text-zinc-600" aria-hidden="true" />
+        <div className="flex min-h-48 flex-col items-center justify-center px-5 py-10 text-center">
+          <Mail className="mb-4 h-6 w-6 text-zinc-600" aria-hidden="true" />
           <h2 className="text-sm font-medium">You're all caught up</h2>
-          <p className="mt-2 text-sm text-zinc-500">
-            Pending invitations will appear here. Invitations expire after seven days.
+          <p className="mt-1.5 max-w-xs text-xs text-zinc-500">
+            New room invitations will appear here.
           </p>
         </div>
       )}

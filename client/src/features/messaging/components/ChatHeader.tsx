@@ -1,4 +1,4 @@
-import { Hash, Loader2, Pin, Settings, Shield, UserPlus, Users } from 'lucide-react';
+import { Hash, Loader2, Pin, Settings, Shield, Users } from 'lucide-react';
 import React, { useState } from 'react';
 
 interface Member {
@@ -15,19 +15,19 @@ interface ChatHeaderProps {
   isLoadingMembers?: boolean;
   onOpenEdit?: () => void;
   canManageRoom?: boolean;
-  onInvite?: () => void;
+  searchControl?: React.ReactNode;
   onOpenMembers?: () => void;
   memberCount?: number;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   roomName,
-  topic = 'General discussion and updates',
+  topic = '',
   members = [],
   isLoadingMembers = false,
   onOpenEdit,
   canManageRoom = true,
-  onInvite,
+  searchControl,
   onOpenMembers,
   memberCount,
 }) => {
@@ -35,17 +35,18 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   const [isPinsOpen, setIsPinsOpen] = useState(false);
 
   return (
-    <div className="relative z-20 h-12 border-b border-zinc-800/80 bg-background px-4 flex items-center justify-between shrink-0">
+    <div className="relative z-20 min-h-12 gap-y-2 py-2 flex-wrap border-b border-zinc-800/80 bg-background px-4 flex items-center justify-between shrink-0">
       <div className="flex items-center space-x-2 min-w-0 flex-1 mr-4">
         <Hash className="h-4 w-4 text-indigo-400 shrink-0" />
         <div className="flex items-center space-x-2 min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-zinc-100 truncate">{roomName}</h2>
-          <span className="text-zinc-700 text-xs shrink-0">|</span>
+          {topic && <span className="text-zinc-700 text-xs shrink-0">|</span>}
           <p className="text-xs text-zinc-400 truncate hidden sm:block">{topic}</p>
         </div>
       </div>
 
-      <div className="flex items-center space-x-3 shrink-0 text-zinc-400 relative">
+      <div className="flex items-center gap-2 shrink-0 text-zinc-400 relative">
+        {searchControl}
         <div className="relative">
           <button
             type="button"
@@ -151,17 +152,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           )}
         </div>
 
-        {canManageRoom && onInvite && (
-          <button
-            type="button"
-            onClick={onInvite}
-            title="Invite people"
-            aria-label="Invite people"
-            className="p-1.5 rounded-lg border bg-zinc-900 border-zinc-800 hover:text-zinc-200 hover:border-zinc-700 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-          </button>
-        )}
         {canManageRoom && onOpenEdit && (
           <button
             type="button"

@@ -1,3 +1,4 @@
+import { GuestLifecycleService } from './guest-lifecycle.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -13,6 +14,7 @@ import { AUTH_SESSION } from 'src/common/constants/auth.constants';
 @Injectable()
 export class SessionService {
   constructor(
+    private readonly guests: GuestLifecycleService,
     @InjectModel(Session.name)
     private readonly sessionModel: Model<SessionDocument>,
   ) {}
@@ -20,9 +22,12 @@ export class SessionService {
   async createGuestSession(ipAddress?: string, userAgent?: string) {
     const now = new Date();
 
+    const guest = await this.guests.create(
+      new Date(now.getTime() + AUTH_SESSION.GUEST_TTL),
+    );
     return this.createSession({
       type: SessionType.GUEST,
-      userId: null,
+      userId: guest._id,
       ipAddress,
       userAgent,
       expiresAt: new Date(now.getTime() + AUTH_SESSION.GUEST_TTL),
@@ -87,6 +92,15 @@ export class SessionService {
 
     if (!session) {
       throw new UnauthorizedException('Invalid or expired session.');
+    }
+
+    if (
+      session.type === SessionType.GUEST &&
+      (!session.userId || !(await this.guests.isActive(session.userId)))
+    ) {
+      throw new UnauthorizedException(
+        'Guest session expired. Sign in to continue.',
+      );
     }
 
     if (session.type === SessionType.REGISTERED) {

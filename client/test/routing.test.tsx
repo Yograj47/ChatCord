@@ -27,6 +27,20 @@ function auth(session: object | null, requiresOnboarding = false, isGuest = fals
   } as ReturnType<typeof useSession>);
 }
 describe('protected routes', () => {
+  it('shows the branded splash while session identity is unresolved', () => {
+    auth(null);
+    vi.mocked(useSession).mockReturnValue({
+      ...useSession(),
+      isLoading: true,
+    });
+    render(
+      <MemoryRouter initialEntries={['/app/rooms/room-1']}>
+        <AppRouter />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('status', { name: 'Loading ChatCord' })).toBeInTheDocument();
+    expect(screen.queryByText('Conversation')).not.toBeInTheDocument();
+  });
   it('redirects unauthenticated direct links to sign in', async () => {
     auth(null);
     render(
