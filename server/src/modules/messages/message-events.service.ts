@@ -1,12 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import type { MessageDocument } from './schemas/message.schema';
 
 @Injectable()
 export class MessageEventsService {
-  private publish?: (roomId: string, event: string, message: unknown) => void;
-  bind(publish: (roomId: string, event: string, message: unknown) => void) {
+  private readonly logger = new Logger(MessageEventsService.name);
+  private publish?: (
+    roomId: string,
+    event: string,
+    message: MessageDocument,
+  ) => Promise<void>;
+  bind(
+    publish: (
+      roomId: string,
+      event: string,
+      message: MessageDocument,
+    ) => Promise<void>,
+  ) {
     this.publish = publish;
   }
-  emit(roomId: string, event: string, message: unknown) {
-    this.publish?.(roomId, event, message);
+  async emit(roomId: string, event: string, message: MessageDocument) {
+    try {
+      await this.publish?.(roomId, event, message);
+    } catch (error: unknown) {
+      this.logger.error('Message saved but live delivery failed.', error);
+    }
   }
 }

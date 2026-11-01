@@ -90,7 +90,7 @@ The three-dot account menu opens a separate Settings layout at `/app/settings`, 
 
 Routes include sign-in (`/`), OAuth callback, username onboarding, the `/app` workspace, Friends, Invitations, rooms, DMs, and room reply deep links. Client route gates handle session and onboarding UX; backend guards remain authoritative.
 
-`AppLayout` owns the registered user's socket connection. The conversation connection hook subscribes/unsubscribes to room events without recreating that connection. Guests can enter the workspace shell but cannot use registered-only social, room/message, or realtime APIs.
+`AppLayout` owns the current user's socket connection, including temporary guests. Conversation hooks subscribe to room events without recreating that connection. Guests can discover and join public groups and use their messages/realtime events; social, invitations, room creation and management remain registered-only.
 
 Messages use bounded infinite queries and backend IDs. Events invalidate room/user-scoped history, search, replies, and quote queries. Rejoining refreshes persisted state. A composer clears its draft only after acknowledged delivery; failed sends retain it. Reply deep links use the real replies view. Workspace search filters real room/DM lists and navigates to the result; message-text search remains scoped to the conversation. Route screens load lazily behind Suspense and an error boundary.
 
@@ -182,14 +182,14 @@ Typing starts are throttled on the client, with stops on idle, blur, empty input
 
 ## Authentication and authorization
 
-Google OAuth redirect and credential verification flows find/create an application user and issue an opaque session token. The browser receives an HTTP-only cookie (`SameSite=Lax`, `Secure` in production); MongoDB stores the token hash. Registered sessions have idle and absolute expiry checked during validation. Guests have a separate expiring session with no registered user ID. Username onboarding is required for new registered users without a username.
+Google OAuth redirect and credential verification flows find/create an application user and issue an opaque session token. The browser receives an HTTP-only cookie (`SameSite=Lax`, `Secure` in production); MongoDB stores the token hash. Registered sessions have idle and absolute expiry checked during validation. Guests receive a temporary User document with a generated `guest_<random>` username and a fixed expiry 30 minutes after creation. Their session references that identity and never slides forward with activity. Username onboarding is required for new registered users without a username.
 
-HTTP SessionGuard validates the cookie and attaches the session identity. RolesGuard enforces registered-only routes. Socket namespace middleware validates credentials before connection; SocketSessionGuard revalidates session credentials for subsequent events. User identity comes from the session, never an action payload.
+HTTP SessionGuard validates the cookie and attaches the session identity. RolesGuard enforces per-route guest/registered access. Socket namespace middleware validates credentials before connection; SocketSessionGuard revalidates session credentials for subsequent events. User identity comes from the session, never an action payload.
 
 | Action | Backend policy |
 | --- | --- |
-| Private-group or DM reads | Membership required; public group details can be read by registered nonmembers |
-| Message history/details/search | Room membership required, including public rooms |
+| Private-group or DM reads | Membership required; public group details can be read by authenticated nonmembers, including guests |
+| Message history/details/search | Current room membership required; only messages with createdAt at or after that membership joinedAt are visible in every room type |
 | Join/leave | Public groups can be joined; ordinary group members can leave; owners cannot leave without ownership transfer, which is not implemented |
 | Group settings/invitations | Owner or moderator; invitees must be registered and accept before joining |
 | Role changes/group deletion | Owner only; assigning ownership through role changes is rejected |
@@ -246,7 +246,7 @@ The default backend Jest suite is controller-only. Specs under `server/test/cont
 
 The opt-in `npm run test:integration` suite under `server/test/integration` boots the actual AppModule with MongoDB and Redis. HTTP workflows exercise real services, guards and persistence, including concurrency and authorization. Each run uses a uniquely generated temporary MongoDB database and drops it in teardown. Registered identities are seeded; external Google login is excluded. It runs separately from the controller-only default suite.
 
-See [backend tests](../server/test/README.md) for layout, configuration, cleanup and scope. Prior feature validations included real MongoDB/Redis/Socket.IO and browser checks; they are historical evidence, not part of the default test run. The separate opt-in `verify-*.ts` utilities remain under `server/test`, create isolated fixture records, and clean up their own data. The frontend has a separate Vitest/Testing Library suite (59 behavior tests across nine files), strict source/test checks, formatting and layer checks. Browser fixtures remain supplemental, not a comprehensive end-to-end suite. See [frontend verification](../client/test/README.md).
+See [backend tests](../server/test/README.md) for layout, configuration, cleanup and scope. Prior feature validations included real MongoDB/Redis/Socket.IO and browser checks; they are historical evidence, not part of the default test run. The separate opt-in `verify-*.ts` utilities remain under `server/test`, create isolated fixture records, and clean up their own data. The frontend has a separate Vitest/Testing Library suite (73 behavior tests across fifteen files), strict source/test checks, formatting and layer checks. Browser fixtures remain supplemental, not a comprehensive end-to-end suite. See [frontend verification](../client/test/README.md).
 
 Known limitations and follow-up work:
 
@@ -275,3 +275,21 @@ Related guides:
 - [Live realtime verification](realtime-verification.md)
 
 The workspace header links to `/app/notifications`, combining Friends and Invitations sections. Its badge counts incoming friend requests and room invitations. Legacy social routes redirect while preserving invitation parameters. Sidebar room and DM headings have no creation shortcuts; room creation remains in the header and DM creation in Friends.
+
+### Temporary guest lifecycle
+
+`GET /rooms/public?q=` searches public group names literally, returns only id/name/description and caps results at 50. Authenticated guests can list their rooms, join/leave public groups, inspect members after joining, and read/send their messages. Private rooms, DMs, social features, invitations, creation and management are unavailable to guests. Switching a public room to private removes its guest memberships and revokes their socket subscriptions. Guests cannot be promoted to moderators.
+
+GuestLifecycleService removes expired memberships, sessions and User documents in retryable batches every 30 seconds and on startup. HTTP validation and per-connection socket expiry enforce the absolute deadline independently of cleanup. Message history remains; deleted identities use the existing missing-user fallback. The frontend displays the generated username, time remaining and Google sign-in link, hides account settings/creation/social controls, clears cached data at expiry and returns to sign-in. Google sign-in creates/uses a registered account; guest memberships are not migrated.
+
+### Join-time message history
+
+RoomsService.messageAccess supplies the authoritative current membership timestamp. Message listing, paging, search, direct reads, reactions, edits, deletion and reply-target resolution all enforce that cutoff; unknown message IDs and pre-join messages both return not found. Leaving/rejoining gets a fresh joinedAt. MessageEventsService publishes through the gateway, which intersects subscribed sockets with current eligible memberships before sending new-message or message-updated payloads, so edits/reactions to old messages do not reveal them to newcomers. Failed fanout never falls back to an unfiltered broadcast.
+
+Client history/detail keys include membership joinedAt. Joining/leaving clears prior membership caches; disabled histories render no cached messages. Public rooms hide the Who can join selector; private rooms retain it. The member dialog and join prompt explain the history rule.
+
+### Trusted room activity
+
+Message documents distinguish legacy/user messages from kind=system activity notices with a systemEvent discriminator. RoomActivityService snapshots usernames into human-readable notice text after successful room mutations. It covers direct/invited joins, leaves, kicks, expiry, renames, capability/visibility/description changes and roles; unchanged saves and failed actions create no notice. Guest cleanup records expiry departures before deleting the guest identity.
+
+MessageEventsModule owns the message model/events provider and is shared by MessagesModule and RoomActivityModule. The activity module depends on public user profiles and message persistence/events, without importing RoomsModule or AuthModule; this avoids a circular module dependency. Notices use the existing join-time query filters and eligible socket audience. User DTOs reject system metadata; reply/reaction/edit/delete APIs disallow system messages. Persistence/live-delivery failures are logged without reversing an already completed room change; these notices are informational rather than a transactional audit ledger.

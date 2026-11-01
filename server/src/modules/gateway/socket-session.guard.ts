@@ -2,7 +2,6 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { SocketAuthService } from './socket-auth.service';
-import { SessionType } from '../auth/schemas/session.schema';
 
 @Injectable()
 export class SocketSessionGuard implements CanActivate {
@@ -11,8 +10,7 @@ export class SocketSessionGuard implements CanActivate {
     const client = context.switchToWs().getClient<Socket>();
     try {
       const session = await this.auth.authenticate(client);
-      if (session.type !== SessionType.REGISTERED || !session.userId)
-        throw new Error('Registered session required');
+      if (!session.userId) throw new Error('A valid session is required');
       return true;
     } catch {
       throw new WsException(

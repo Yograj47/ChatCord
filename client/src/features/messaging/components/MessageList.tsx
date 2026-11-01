@@ -1,3 +1,4 @@
+import { SystemMessageItem } from '@/features/messaging/components/SystemMessageItem';
 import { MessageItem } from '@/features/messaging/components/MessageItem';
 import type { Message } from '@/features/messaging/types/message.types';
 import React, { useEffect, useRef } from 'react';
@@ -30,18 +31,22 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   return (
     <div className="flex-1 overflow-y-auto space-y-1 px-2 pt-6 pb-2 scrollbar-thin">
-      {messages.map((msg) => (
-        <MessageItem
-          key={msg.id}
-          message={msg}
-          onReact={onReact}
-          onReplyInInput={onReplyInInput}
-          onPinMessage={onPinMessage}
-          onDeleteMessage={onDeleteMessage}
-          onEditMessage={onEditMessage}
-          onOpenReplies={onOpenReplies}
-        />
-      ))}
+      {messages.map((msg) =>
+        msg.kind === 'system' ? (
+          <SystemMessageItem key={msg.id} message={msg} />
+        ) : (
+          <MessageItem
+            key={msg.id}
+            message={msg}
+            onReact={onReact}
+            onReplyInInput={onReplyInInput}
+            onPinMessage={onPinMessage}
+            onDeleteMessage={onDeleteMessage}
+            onEditMessage={onEditMessage}
+            onOpenReplies={onOpenReplies}
+          />
+        ),
+      )}
       <div ref={bottomRef} />
     </div>
   );

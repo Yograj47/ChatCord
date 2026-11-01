@@ -12,7 +12,7 @@ export function AccountControls() {
   const navigate = useNavigate();
   const location = useLocation();
   const setMobileView = useLayoutStore((state) => state.setMobileView);
-  if (!sessionData) return null;
+  if (!sessionData || sessionData.type === 'guest') return null;
   const endSession = async () => {
     setError(null);
     try {

@@ -1,3 +1,8 @@
+import { MessageSchema } from '../src/modules/messages/schemas/message.schema';
+import { MessageEventsService } from '../src/modules/messages/message-events.service';
+import { RoomActivityService } from '../src/modules/rooms/room-activity.service';
+import { RoomSchema } from '../src/modules/rooms/schemas/room.schema';
+import { GuestLifecycleService } from '../src/modules/auth/guest-lifecycle.service';
 // Manual live-database check: npx ts-node --transpile-only -r tsconfig-paths/register test/verify-user-search.ts
 // Uses .env.local, then .env; creates and removes only isolated test records.
 import 'reflect-metadata';
@@ -45,8 +50,31 @@ async function main() {
     const usersService = new UsersService(
       users as unknown as ConstructorParameters<typeof UsersService>[0],
     );
+    const activity = new RoomActivityService(
+      connection.model(
+        'Message',
+        MessageSchema,
+      ) as unknown as ConstructorParameters<typeof RoomActivityService>[0],
+      new UsersService(
+        users as unknown as ConstructorParameters<typeof UsersService>[0],
+      ),
+      new MessageEventsService(),
+    );
+    const guests = new GuestLifecycleService(
+      users as unknown as ConstructorParameters<
+        typeof GuestLifecycleService
+      >[0],
+      connection.model('Room', RoomSchema) as unknown as ConstructorParameters<
+        typeof GuestLifecycleService
+      >[1],
+      sessions as unknown as ConstructorParameters<
+        typeof GuestLifecycleService
+      >[2],
+      activity,
+    );
     const sessionService = new SessionService(
-      sessions as unknown as ConstructorParameters<typeof SessionService>[0],
+      guests,
+      sessions as unknown as ConstructorParameters<typeof SessionService>[1],
     );
     const prefix = `v${randomBytes(5).toString('hex')}`;
     await users.insertMany(
@@ -64,6 +92,7 @@ async function main() {
     );
     sessionIds.push(registered.session._id);
     const guest = await sessionService.createGuestSession();
+    if (guest.session.userId) ids.push(guest.session.userId);
     sessionIds.push(guest.session._id);
     const module = await Test.createTestingModule({
       controllers: [AuthController],

@@ -1,3 +1,4 @@
+import { RoomActivityModule } from './room-activity.module';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -14,6 +15,7 @@ import { RoomEventsService } from './room-events.service';
 @Module({
   imports: [
     AuthModule,
+    RoomActivityModule,
     UsersModule,
     FriendshipsModule,
     MongooseModule.forFeature([

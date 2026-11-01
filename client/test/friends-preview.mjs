@@ -4,6 +4,8 @@ import { createServer } from 'vite';
 import process from 'node:process';
 
 const mode = process.argv[2] ?? 'normal';
+const previewPort = Number(process.argv[3] ?? 4177);
+let guestMode = mode === 'guest';
 
 const people = [
   {
@@ -69,7 +71,12 @@ const invitedRooms = [
   makeRoom('000000000000000000000103', 'Product Lab', 'owner', people[1]._id),
   makeRoom('000000000000000000000104', 'Weekend Workshop', 'owner', people[1]._id),
 ];
-const myRooms = [ownedRoom, memberRoom];
+const myRooms = mode === 'guest' ? [] : [ownedRoom, memberRoom];
+const publicRoom = {
+  ...makeRoom('000000000000000000000105', 'Public Lounge', 'owner', people[1]._id),
+  visibility: 'public',
+};
+let guestExpiresAt = new Date(Date.now() + 30 * 60000).toISOString();
 let invitations = invitedRooms.map((room, i) => ({
   id: `00000000000000000000020${i}`,
   roomId: room._id,
@@ -78,12 +85,12 @@ let invitations = invitedRooms.map((room, i) => ({
   expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
 }));
 const sentInvitations = new Set();
-let signedIn = true;
+let signedIn = mode !== 'signed-out';
 const server = await createServer({
-  server: { host: '127.0.0.1', port: 4177, strictPort: true },
+  server: { host: '127.0.0.1', port: previewPort, strictPort: true },
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify('/api'),
-    'import.meta.env.VITE_SOCKET_URL': JSON.stringify('http://127.0.0.1:4177'),
+    'import.meta.env.VITE_SOCKET_URL': JSON.stringify(`http://127.0.0.1:${previewPort}`),
   },
   plugins: [
     {
@@ -97,13 +104,20 @@ const server = await createServer({
             res.statusCode = status;
             res.end(JSON.stringify(body));
           };
+          if (url.pathname === '/api/auth/guest' && req.method === 'POST') {
+            signedIn = true;
+            guestMode = true;
+            guestExpiresAt = new Date(Date.now() + 30 * 60000).toISOString();
+            myRooms.splice(0);
+            return send({ message: 'Synthetic guest session created.' }, 201);
+          }
           if (url.pathname === '/api/auth/logout' && req.method === 'POST') {
             signedIn = false;
             return send({ message: 'Synthetic session ended.' });
           }
           if (!signedIn) return send({ message: 'Not signed in.' }, 401);
           if (url.pathname === '/api/auth/onboarding' && req.method === 'POST') {
-            if (mode === 'guest') return send({ message: 'Registered account required.' }, 401);
+            if (guestMode) return send({ message: 'Registered account required.' }, 401);
             let text = '';
             for await (const chunk of req) text += chunk;
             const profile = JSON.parse(text);
@@ -117,9 +131,17 @@ const server = await createServer({
           }
           if (url.pathname === '/api/auth/me')
             return send(
-              mode === 'guest'
+              guestMode
                 ? {
                     type: 'guest',
+                    id: people[0]._id,
+                    user: {
+                      id: people[0]._id,
+                      type: 'guest',
+                      username: 'guest_preview',
+                      displayName: 'guest_preview',
+                    },
+                    expiresAt: guestExpiresAt,
                     sessionId: 'fixture',
                     requiresOnboarding: false,
                   }
@@ -139,6 +161,25 @@ const server = await createServer({
             return send({ message: 'Synthetic connection failure.' }, 503);
           if (mode === 'error' && url.pathname.startsWith('/api/rooms'))
             return send({ message: 'Synthetic room API failure.' }, 503);
+          if (url.pathname === '/api/rooms/public')
+            return send(
+              publicRoom.name
+                .toLowerCase()
+                .includes((url.searchParams.get('q') ?? '').toLowerCase())
+                ? [{ _id: publicRoom._id, name: publicRoom.name }]
+                : [],
+            );
+          if (url.pathname === `/api/rooms/${publicRoom._id}/join` && req.method === 'POST') {
+            if (!publicRoom.members.some((member) => member.userId === people[0]._id)) {
+              publicRoom.members.push({
+                userId: people[0]._id,
+                role: 'member',
+                joinedAt: new Date().toISOString(),
+              });
+              myRooms.push(publicRoom);
+            }
+            return send(publicRoom, 201);
+          }
           if (url.pathname === '/api/rooms/invitations') return send(invitations);
           if (url.pathname === '/api/rooms') return send(myRooms);
           const invitationAction = url.pathname.match(
@@ -190,7 +231,7 @@ const server = await createServer({
           if (roomMessages) return send([]);
           const roomRead = url.pathname.match(/^\/api\/rooms\/([^/]+)$/);
           if (roomRead) {
-            const room = myRooms.find((room) => room._id === roomRead[1]);
+            const room = [...myRooms, publicRoom].find((room) => room._id === roomRead[1]);
             return room ? send(room) : send({ message: 'Room not found.' }, 404);
           }
           if (url.pathname === '/api/dms') return send([]);
@@ -262,7 +303,7 @@ const server = await createServer({
   ],
 });
 await server.listen();
-console.log('Synthetic Friends UI preview: http://127.0.0.1:4177/app/friends');
+console.log(`Synthetic UI preview: http://127.0.0.1:${previewPort}/`);
 const close = () => {
   void server.close().then(() => process.exit(0));
 };

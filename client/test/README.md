@@ -47,3 +47,9 @@ JSDOM does not implement native modal focus containment or inert background cont
 - `live-preview.mjs`: real frontend against the separate backend live harness; see [live verification](../../docs/realtime-verification.md).
 
 Fixtures are outside the production entry point. See the [cleanup log](../../docs/frontend-cleanup-log.md) for the browser checks actually performed and measured results.
+
+Guest workspace tests cover public-room search without DM suggestions, hidden account options, generated-name/countdown display, expiry cache clearing/disconnect/navigation, and join mutation/cache updates.
+
+History-policy regression checks cover public-room visibility control hiding, policy guidance, membership-specific history cache keys, pre-join filtering and disabled-query cached-data suppression.
+
+System-message tests verify activity metadata mapping and separate notice rendering without author avatars or message actions.

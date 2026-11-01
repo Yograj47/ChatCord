@@ -93,7 +93,9 @@ export const AppRouter: React.FC = () => {
           <Route
             path="/app/settings"
             element={
-              !isAuthenticated ? (
+              isGuest ? (
+                <Navigate to="/app" replace />
+              ) : !isAuthenticated ? (
                 <Navigate to="/" replace />
               ) : requiresOnboarding && !isGuest ? (
                 <Navigate to="/onboarding/username" replace />

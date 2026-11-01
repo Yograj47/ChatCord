@@ -217,3 +217,39 @@ Branch: `fix/frontend-ui-ux`.
 - Checkpoint includes the branded splash, Settings/profile/logout, sidebar simplification, unified Notifications, shared room editor, member dialog and chat controls.
 
 Final checkpoint validation: 59 tests across nine files, source/test TypeScript, ESLint, formatting, architecture checks, production build and bundle budget all pass. Largest JavaScript chunk: 281.44 kB (below 500 kB).
+
+## UI follow-up — Profile pictures (2026-11-01)
+
+- Sidebar footer, chat messages and member list now display available profile photos using a shared Avatar component. Missing or failed photos fall back to initials; changed URLs retry automatically.
+- The authorized room-member API now includes the avatar already fetched with public profiles. Message view mapping carries that URL to the renderer.
+- Existing 59 frontend tests plus one photo/fallback regression pass. Client/server builds and client TypeScript pass.
+
+## Guest workspace (2026-11-01)
+
+- Added generated temporary identities, searchable public-room discovery and join prompts. Guests can participate in public rooms over HTTP and Socket.IO, without settings, room creation or social/DM controls.
+- Added session countdown and Google sign-in; expiry disconnects sockets, clears caches and returns to sign-in. Server cleanup removes expired identities, sessions and memberships in batches every 30 seconds and on startup. Account expiry is fixed at creation plus 30 minutes.
+- Public-to-private changes revoke guest memberships; guest moderator promotion is denied. Google sign-in uses a registered account without migrating temporary membership.
+- Validation: 64 frontend tests, 129 controller tests, 21 real persistence workflows including guest socket join/send/expiry and cleanup.
+
+## Join-time message visibility (2026-11-01)
+
+- Hidden the Who can join selector for public rooms, while keeping private-room controls. Member dialogs and join/empty states explain the history rule.
+- All message access uses the current membership join timestamp, including history, search, direct IDs, replies, reactions and author actions. Socket fanout checks current eligible subscriptions instead of broadcasting old-message updates to newcomers. Leaving/rejoining resets the history window.
+- Frontend query keys include the membership timestamp and join/leave clears old caches. Disabled history does not render cached messages.
+
+Validation: 66 frontend tests across 12 files and 26 real-persistence workflows pass. The history matrix covers public/private groups, DMs and guests, including direct-ID/reply/reaction bypass attempts, pre-join own-message edits/deletion, pagination/search, socket updates and leave/rejoin. Builds, TypeScript, lint and architecture checks pass.
+
+## Compact room activity notices (2026-11-01)
+
+- Added a smaller, centered notice row with muted text, a lightly colored event icon and a compact timestamp. Regular chat messages retain their existing layout.
+- Server-generated notices persist direct/invited joins, leaves, removals, expired guests, room renames, capability/visibility/description changes and role changes. Reconnects, failed actions and no-op saves create no duplicate notices.
+- Notices follow join-time visibility and filtered socket fanout. They cannot be forged or mutated through user message APIs and have no reply/reaction controls.
+- Frontend validation: 68 tests across 13 files, TypeScript, lint, formatting, architecture, production build and bundle budget pass.
+
+Live validation: all 27 persistence workflows pass, including notice ordering/delivery, invitation joins, guest expiry, no-op/failed-action duplicate prevention, immutable notices and rejection of forged metadata. Existing join-time history and guest restrictions continue to pass.
+
+## Workspace and landing checkpoint (2026-11-01)
+
+- Replaced the workspace empty screen with room/DM summaries, public discovery, working quick actions and guest guidance. Workspace shell navigation is unchanged.
+- Expanded the landing page with product context, features, onboarding steps and clear guest/account distinctions. Its header stays visible with a translucent background and backdrop blur; anchor sections include header clearance. Refined section/card spacing.
+- Frontend validation covers 73 tests across 15 files; existing 129 controller and 27 live persistence workflows were verified during this branch. Documentation/legal content review remains the next phase.

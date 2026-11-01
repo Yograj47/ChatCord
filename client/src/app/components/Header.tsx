@@ -1,3 +1,4 @@
+import { useSession } from '@/features/auth/hooks/useSession';
 import { HeaderActions } from '@/app/components/header/HeaderActions';
 import { NotificationsButton } from '@/app/components/header/NotificationsButton';
 import { useRoomUiStore } from '@/features/rooms/stores/room-ui.store';
@@ -7,6 +8,8 @@ import { ChevronLeft, Search } from 'lucide-react';
 import React, { useRef } from 'react';
 
 export const Header: React.FC = () => {
+  const { sessionData } = useSession();
+  const registered = sessionData?.type === 'registered';
   const headerRef = useRef<HTMLDivElement>(null);
   const setCreateRoomOpen = useRoomUiStore((s) => s.setCreateRoomOpen);
   const { width } = useElementSize(headerRef);
@@ -54,10 +57,10 @@ export const Header: React.FC = () => {
           )}
         </button>
 
-        <NotificationsButton />
+        {registered && <NotificationsButton />}
         <div className="h-4 w-px bg-zinc-800/80 shrink-0" />
 
-        <HeaderActions onNewAction={() => setCreateRoomOpen(true)} />
+        {registered && <HeaderActions onNewAction={() => setCreateRoomOpen(true)} />}
       </div>
     </header>
   );

@@ -110,11 +110,10 @@ describe('account controls', () => {
     expect(screen.getByLabelText('Username')).toHaveValue('taken');
     expect(screen.getByLabelText('Username')).toBeInTheDocument();
   });
-  it('offers settings but no registered-profile editor for guest sessions', async () => {
+  it('hides the account menu and settings for guests', () => {
     setup({ sessionId: 'guest', type: 'guest', requiresOnboarding: false });
-    await openSettings();
+    expect(screen.queryByRole('button', { name: 'Account options' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Username')).not.toBeInTheDocument();
-    expect(screen.getByText(/You’re browsing as a guest/)).toBeInTheDocument();
   });
   it('logs out, clears private caches and returns to sign in', async () => {
     vi.spyOn(authApi, 'logout').mockResolvedValue({ message: 'ok' });

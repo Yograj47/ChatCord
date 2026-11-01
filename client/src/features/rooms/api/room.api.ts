@@ -10,6 +10,8 @@ import type {
 import { api } from '@/shared/api/http-client';
 
 export const roomsApi = {
+  searchPublic: async (query: string): Promise<Pick<Room, '_id' | 'name' | 'description'>[]> =>
+    (await api.get('/rooms/public', { params: { q: query } })).data,
   getMembers: async (roomId: string): Promise<RoomMemberProfile[]> =>
     (await api.get<RoomMemberProfile[]>(`/rooms/${roomId}/members`)).data,
   getInvitations: async (): Promise<RoomInvitation[]> =>

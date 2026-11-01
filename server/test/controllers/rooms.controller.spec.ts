@@ -135,7 +135,33 @@ describe('RoomsController HTTP', () => {
   beforeEach(() => jest.clearAllMocks());
   protectedRoutes(
     () => f,
-    routes.map(({ method, path }) => [method, path]),
+    routes
+      .filter(
+        (route) =>
+          ![
+            'findAllForUser',
+            'findAccessible',
+            'joinRoom',
+            'leaveRoom',
+            'members',
+          ].includes(route.handler),
+      )
+      .map(({ method, path }) => [method, path]),
+  );
+  protectedRoutes(
+    () => f,
+    routes
+      .filter((route) =>
+        [
+          'findAllForUser',
+          'findAccessible',
+          'joinRoom',
+          'leaveRoom',
+          'members',
+        ].includes(route.handler),
+      )
+      .map(({ method, path }) => [method, path]),
+    null,
   );
   it.each(routes)(
     '$method $path delegates validated data and the session user',
@@ -163,6 +189,17 @@ describe('RoomsController HTTP', () => {
     await f.call(method, path, body).expect(400);
     for (const mock of Object.values(f.services.rooms))
       expect(mock).not.toHaveBeenCalled();
+  });
+  it('allows guests to discover public rooms but keeps creation restricted', async () => {
+    f.services.rooms.searchPublic.mockResolvedValue([]);
+    await f
+      .call('get', '/rooms/public?q=studio', undefined, 'guest')
+      .expect(200)
+      .expect([]);
+    expect(f.services.rooms.searchPublic).toHaveBeenCalledWith('studio');
+    await f
+      .call('post', '/rooms', { type: 'group', name: 'Guest room' }, 'guest')
+      .expect(403);
   });
   it('passes supported room slugs to the service', async () => {
     f.services.rooms.findAccessible.mockResolvedValue({ _id: ROOM });

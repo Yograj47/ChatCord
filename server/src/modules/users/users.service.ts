@@ -23,7 +23,7 @@ export class UsersService {
   async publicProfiles(ids: string[]) {
     return this.userModel
       .find({ _id: { $in: ids } })
-      .select('_id username displayName avatar')
+      .select('_id username displayName avatar type expiresAt')
       .lean()
       .exec();
   }

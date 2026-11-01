@@ -19,3 +19,7 @@ Role changes and removals are authorized again inside the atomic database update
 Text-message controls update the room's existing capability list. The composer explains when text is disabled; the server independently rejects forbidden sends.
 
 Validation includes unit tests and the real-stack harness in [Realtime verification](realtime-verification.md). Browser checks use isolated MongoDB users and rooms, not synthetic API responses.
+
+## Join-time history
+
+Members see messages from their current join time onward, in public/private groups and DMs. Leaving and rejoining resets the window. This rule is enforced by the server for every message access route and live message update. Public-room member dialogs hide the Who can join selector; private rooms retain the visibility selector.

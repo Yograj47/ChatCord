@@ -1,3 +1,4 @@
+import { Avatar } from '@/shared/ui/Avatar';
 import { MessageActions } from '@/features/messaging/components/MessageActions';
 import { MessageQuote } from '@/features/messaging/components/MessageQuote';
 import type { Message } from '@/features/messaging/types/message.types';
@@ -57,13 +58,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         />
       )}
 
-      <div
-        className={`w-8 h-8 rounded-full ${
-          message.senderAvatarBg || 'bg-indigo-600'
-        } border border-zinc-700/50 flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5 select-none`}
-      >
-        {message.senderInitials}
-      </div>
+      <Avatar
+        src={message.senderAvatarUrl}
+        initials={message.senderInitials}
+        className={`size-8 ${message.senderAvatarBg || 'bg-indigo-600'} border border-zinc-700/50 text-xs font-bold text-white mt-0.5 select-none`}
+      />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline space-x-2">
@@ -90,6 +89,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 
         {message.replyToId && message.roomId && message.viewerId && (
           <MessageQuote
+            historySince={message.historySince}
             roomId={message.roomId}
             userId={message.viewerId}
             messageId={message.replyToId}

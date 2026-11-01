@@ -16,9 +16,16 @@ export function useMessages(
   enabled: boolean,
   q = '',
   replyTo?: string,
+  historySince = '',
 ) {
   const query = useInfiniteQuery({
-    queryKey: [...MESSAGE_QUERY_KEYS.room(roomId, userId), 'pages', q, replyTo ?? ''],
+    queryKey: [
+      ...MESSAGE_QUERY_KEYS.room(roomId, userId),
+      'pages',
+      q,
+      replyTo ?? '',
+      ...(historySince ? [historySince] : []),
+    ],
     queryFn: ({ pageParam, signal }) =>
       messagesApi.getPage(
         roomId,
@@ -30,20 +37,29 @@ export function useMessages(
     enabled: Boolean(enabled && roomId && userId),
     retry: false,
   });
-  const messages = [
-    ...new Map(
-      (query.data?.pages.flatMap((page) => page.items) ?? []).map((message) => [
-        message._id,
-        message,
-      ]),
-    ).values(),
-  ].sort((a, b) => a._id.localeCompare(b._id));
+  const messages = enabled
+    ? [
+        ...new Map(
+          (query.data?.pages.flatMap((page) => page.items) ?? []).map((message) => [
+            message._id,
+            message,
+          ]),
+        ).values(),
+      ]
+        .filter(
+          (message) => !historySince || Date.parse(message.createdAt) >= Date.parse(historySince),
+        )
+        .sort((a, b) => a._id.localeCompare(b._id))
+    : [];
   return { ...query, messages };
 }
 
-export function useMessageDetail(roomId: string, userId: string, id: string) {
+export function useMessageDetail(roomId: string, userId: string, id: string, historySince = '') {
   return useQuery({
-    queryKey: MESSAGE_QUERY_KEYS.detail(roomId, userId, id),
+    queryKey: [
+      ...MESSAGE_QUERY_KEYS.detail(roomId, userId, id),
+      ...(historySince ? [historySince] : []),
+    ],
     queryFn: ({ signal }) => messagesApi.getMessage(roomId, id, signal),
     enabled: Boolean(roomId && userId && id),
     retry: false,

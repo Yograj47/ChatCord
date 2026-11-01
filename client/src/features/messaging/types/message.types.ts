@@ -1,4 +1,9 @@
+export type RoomActivityEvent =
+  'joined' | 'left' | 'removed' | 'expired' | 'renamed' | 'permissions' | 'role';
+
 export interface StoredMessage {
+  kind?: 'user' | 'system';
+  systemEvent?: RoomActivityEvent;
   _id: string;
   roomId: string;
   senderId: string;
@@ -48,6 +53,8 @@ export interface QuotedReply {
 }
 
 export interface Message {
+  kind?: 'user' | 'system';
+  systemEvent?: RoomActivityEvent;
   id: string;
   roomId?: string;
   viewerId?: string;
@@ -57,6 +64,8 @@ export interface Message {
   senderName: string;
   senderInitials: string;
   senderAvatarBg?: string;
+  senderAvatarUrl?: string;
+  historySince?: string;
   content: string;
   timestamp: string;
   isSelf?: boolean;

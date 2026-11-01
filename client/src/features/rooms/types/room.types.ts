@@ -38,6 +38,8 @@ export interface RoomMember {
 }
 
 export interface RoomMemberProfile {
+  type?: 'registered' | 'guest';
+  avatar?: { url: string; source: string };
   id: string;
   username?: string;
   displayName: string;

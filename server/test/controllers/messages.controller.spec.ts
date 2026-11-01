@@ -94,6 +94,7 @@ describe('MessagesController HTTP', () => {
   protectedRoutes(
     () => f,
     routes.map(({ method, path }) => [method, path]),
+    null,
   );
   it.each(routes)(
     '$method $path delegates validated data and the session identity',

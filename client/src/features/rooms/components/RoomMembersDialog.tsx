@@ -1,3 +1,4 @@
+import { Avatar } from '@/shared/ui/Avatar';
 import { PresenceBadge } from '@/features/realtime/components/PresenceBadge';
 import { useRoomMembership } from '@/features/rooms/hooks/useRoomMembership';
 import type { Room, RoomMemberRole } from '@/features/rooms/types/room.types';
@@ -83,6 +84,10 @@ export function RoomMembersDialog({
         </div>
       ) : (
         <>
+          <p className="mt-4 text-xs leading-relaxed text-zinc-500">
+            Members can only see messages sent after they joined. Leaving and rejoining starts a new
+            message history.
+          </p>
           {manager && (
             <div className="mb-4 flex justify-end">
               <button
@@ -121,12 +126,11 @@ export function RoomMembersDialog({
             {members.data?.map((member) => (
               <li key={member.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="grid size-9 shrink-0 place-items-center rounded-full bg-indigo-400/10 text-xs font-medium text-indigo-300"
-                  >
-                    {(member.username || member.displayName).slice(0, 2).toUpperCase()}
-                  </span>
+                  <Avatar
+                    src={member.avatar?.url}
+                    initials={(member.username || member.displayName).slice(0, 2).toUpperCase()}
+                    className="size-9 bg-indigo-400/10 text-xs font-medium text-indigo-300"
+                  />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <p className="break-words text-sm font-medium">
@@ -141,35 +145,43 @@ export function RoomMembersDialog({
                     </div>
                   </div>
                 </div>
-                {!(room.type === 'group' && owner && member.role !== 'owner') && (
+                {!(
+                  room.type === 'group' &&
+                  owner &&
+                  member.role !== 'owner' &&
+                  member.type !== 'guest'
+                ) && (
                   <span className="rounded-md bg-zinc-800/60 px-2 py-1 text-[11px] capitalize text-zinc-400">
-                    {member.role}
+                    {member.type === 'guest' ? 'Guest' : member.role}
                   </span>
                 )}
-                {room.type === 'group' && owner && member.role !== 'owner' && (
-                  <div className="relative w-32 shrink-0">
-                    <select
-                      aria-label={`Role for ${member.displayName}`}
-                      disabled={action.isPending}
-                      value={member.role}
-                      onChange={(event) =>
-                        action.mutate({
-                          kind: 'role',
-                          userId: member.id,
-                          role: event.target.value as RoomMemberRole,
-                        })
-                      }
-                      className={selectControl}
-                    >
-                      <option value="member">Member</option>
-                      <option value="moderator">Moderator</option>
-                    </select>
-                    <ChevronDown
-                      aria-hidden="true"
-                      className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-500"
-                    />
-                  </div>
-                )}
+                {room.type === 'group' &&
+                  owner &&
+                  member.role !== 'owner' &&
+                  member.type !== 'guest' && (
+                    <div className="relative w-32 shrink-0">
+                      <select
+                        aria-label={`Role for ${member.displayName}`}
+                        disabled={action.isPending}
+                        value={member.role}
+                        onChange={(event) =>
+                          action.mutate({
+                            kind: 'role',
+                            userId: member.id,
+                            role: event.target.value as RoomMemberRole,
+                          })
+                        }
+                        className={selectControl}
+                      >
+                        <option value="member">Member</option>
+                        <option value="moderator">Moderator</option>
+                      </select>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-500"
+                      />
+                    </div>
+                  )}
                 {manager &&
                   member.id !== userId &&
                   member.role !== 'owner' &&
@@ -193,30 +205,32 @@ export function RoomMembersDialog({
                 <Shield className="h-4 w-4 text-indigo-400" aria-hidden="true" />
                 Group permissions
               </h3>
-              <label className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-zinc-900/50 p-3 text-xs text-zinc-300">
-                Who can join?
-                <span className="relative w-full sm:w-48">
-                  <select
-                    aria-label="Room visibility"
-                    value={room.visibility}
-                    disabled={action.isPending}
-                    onChange={(event) =>
-                      action.mutate({
-                        kind: 'visibility',
-                        value: event.target.value as 'public' | 'private',
-                      })
-                    }
-                    className={selectControl}
-                  >
-                    <option value="private">Invited people only</option>
-                    <option value="public">Any registered user</option>
-                  </select>
-                  <ChevronDown
-                    aria-hidden="true"
-                    className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-500"
-                  />
-                </span>
-              </label>
+              {room.visibility !== 'public' && (
+                <label className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-zinc-900/50 p-3 text-xs text-zinc-300">
+                  Who can join?
+                  <span className="relative w-full sm:w-48">
+                    <select
+                      aria-label="Room visibility"
+                      value={room.visibility}
+                      disabled={action.isPending}
+                      onChange={(event) =>
+                        action.mutate({
+                          kind: 'visibility',
+                          value: event.target.value as 'public' | 'private',
+                        })
+                      }
+                      className={selectControl}
+                    >
+                      <option value="private">Invited people only</option>
+                      <option value="public">Anyone, including guests</option>
+                    </select>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-zinc-500"
+                    />
+                  </span>
+                </label>
+              )}
               <label className="flex items-center gap-3 rounded-lg bg-zinc-900/50 p-3 text-xs text-zinc-300">
                 <input
                   className="size-4 shrink-0 rounded accent-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"

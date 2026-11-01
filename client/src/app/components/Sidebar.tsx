@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Search } from 'lucide-react';
 import { HeaderBranding } from '@/app/components/header/HeaderBranding';
 import { DirectMessagesSection, type DMItem } from '@/app/components/sidebar/DirectMessagesSection';
 import { PinnedSpacesSection } from '@/app/components/sidebar/PinnedSpacesSection';
@@ -23,8 +23,8 @@ export const Sidebar: React.FC = () => {
     room.members.map((member) => member.userId?._id).filter((id): id is string => Boolean(id)),
   );
   const presence = usePresence([...peerIds, ...(sessionData?.id ? [sessionData.id] : [])]);
-  const { setMobileView } = useLayoutStore();
-  const { rooms: backendRooms, isLoadingRooms } = useRooms(enabled);
+  const { setMobileView, setGlobalSearchOpen } = useLayoutStore();
+  const { rooms: backendRooms, isLoadingRooms } = useRooms(Boolean(sessionData?.id));
 
   const { roomId: activeRoomId, dmId: activeDmId } = useConversationRoute();
 
@@ -72,7 +72,19 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <div className="px-2 pt-4 space-y-4">
-          <PinnedSpacesSection />
+          {enabled && <PinnedSpacesSection />}
+          {!enabled && (
+            <button
+              type="button"
+              onClick={() => {
+                setMobileView('chat');
+                setGlobalSearchOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100"
+            >
+              <Search className="size-4" aria-hidden="true" /> Explore public rooms
+            </button>
+          )}
 
           {isLoadingRooms ? (
             <div className="px-2 py-3 text-xs text-zinc-500 animate-pulse">Loading rooms...</div>
@@ -84,11 +96,13 @@ export const Sidebar: React.FC = () => {
             />
           )}
 
-          <DirectMessagesSection
-            dms={dmItems}
-            activeDmId={activeDmId}
-            onSelectDm={handleSelectDm}
-          />
+          {enabled && (
+            <DirectMessagesSection
+              dms={dmItems}
+              activeDmId={activeDmId}
+              onSelectDm={handleSelectDm}
+            />
+          )}
           {dms.isError && (
             <p role="alert" className="px-2 text-xs text-red-400">
               Could not load conversations.
@@ -99,6 +113,7 @@ export const Sidebar: React.FC = () => {
 
       <UserProfileFooter
         username={sessionData?.user?.username ?? 'Guest'}
+        avatarUrl={sessionData?.user?.avatar?.url}
         initials={(sessionData?.user?.username ?? 'Guest').slice(0, 2).toUpperCase()}
         status={presence.status(sessionData?.id ?? '')}
       >

@@ -1,5 +1,6 @@
 export const ROOM_QUERY_KEYS = {
   all: ['rooms'] as const,
+  public: (query: string) => ['rooms', 'public', query] as const,
   lists: () => ['rooms', 'list'] as const,
   detail: (id: string) => ['rooms', 'detail', id] as const,
   members: (id: string, userId?: string) => ['room-members', id, userId] as const,

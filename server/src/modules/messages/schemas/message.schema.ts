@@ -7,6 +7,24 @@ import { Types } from 'mongoose';
   strict: true,
 })
 export class Message {
+  @Prop({ enum: ['user', 'system'], default: 'user' })
+  kind!: 'user' | 'system';
+
+  @Prop({
+    enum: [
+      'joined',
+      'left',
+      'removed',
+      'expired',
+      'renamed',
+      'permissions',
+      'role',
+    ],
+  })
+  systemEvent?: RoomActivityEvent;
+
+  createdAt!: Date;
+  updatedAt!: Date;
   @Prop({ type: Types.ObjectId, ref: 'Message', default: null })
   replyTo?: Types.ObjectId | null;
 
@@ -51,6 +69,15 @@ export class Message {
   })
   content!: string;
 }
+
+export type RoomActivityEvent =
+  | 'joined'
+  | 'left'
+  | 'removed'
+  | 'expired'
+  | 'renamed'
+  | 'permissions'
+  | 'role';
 
 export type MessageDocument = HydratedDocument<Message>;
 

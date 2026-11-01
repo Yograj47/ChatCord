@@ -1,7 +1,7 @@
 import { Dialog } from '@/shared/ui/Dialog';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { useDirectMessages } from '@/features/friendships/hooks/useSocial';
-import { useRooms } from '@/features/rooms/hooks/useRooms';
+import { usePublicRooms, useRooms } from '@/features/rooms/hooks/useRooms';
 import { useLayoutStore } from '@/shared/stores/layout.store';
 import { ArrowUpRight, Hash, MessageSquare, Search, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -13,8 +13,9 @@ export function GlobalSearchPanel() {
   const setMobileView = useLayoutStore((s) => s.setMobileView);
   const [query, setQuery] = useState('');
   const { sessionData } = useSession();
+  const publicRooms = usePublicRooms(query.trim(), Boolean(sessionData) && open);
   const enabled = sessionData?.type === 'registered';
-  const { rooms, roomsError, isLoadingRooms } = useRooms(enabled && open);
+  const { rooms, roomsError, isLoadingRooms } = useRooms(Boolean(sessionData) && open);
   const dms = useDirectMessages(enabled && open ? sessionData.id : undefined);
   const navigate = useNavigate();
   useEffect(() => {
@@ -37,7 +38,15 @@ export function GlobalSearchPanel() {
         name: room.name || 'Unnamed room',
         path: `/app/rooms/${room._id}`,
       })),
-    ...(dms.data ?? []).map((room) => ({
+    ...(publicRooms.data ?? [])
+      .filter((room) => !rooms.some((joined) => joined._id === room._id))
+      .map((room) => ({
+        kind: 'Public rooms',
+        id: room._id,
+        name: room.name || 'Unnamed room',
+        path: `/app/rooms/${room._id}`,
+      })),
+    ...(enabled ? (dms.data ?? []) : []).map((room) => ({
       kind: 'Direct messages',
       id: room._id,
       name:
@@ -75,10 +84,11 @@ export function GlobalSearchPanel() {
         </label>
         <input
           autoFocus
-          placeholder="Search rooms and direct messages…"
+          placeholder="Search rooms…"
           autoComplete="off"
           id="workspace-search"
           type="search"
+          maxLength={100}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           className="h-10 min-w-0 flex-1 bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
@@ -96,18 +106,18 @@ export function GlobalSearchPanel() {
         </button>
       </form>
       <div className="max-h-[40dvh] overflow-y-auto px-4 py-4 sm:px-6">
-        {!enabled ? (
+        {!sessionData ? (
           <p>Sign in to search conversations.</p>
-        ) : isLoadingRooms || dms.isPending ? (
+        ) : isLoadingRooms || publicRooms.isPending || (enabled && dms.isPending) ? (
           <p role="status">Loading conversations…</p>
-        ) : roomsError || dms.isError ? (
+        ) : roomsError || publicRooms.isError || (enabled && dms.isError) ? (
           <p role="alert">Could not load conversations. Close and reopen to retry.</p>
         ) : (
           <div aria-label="Conversation search results" className="space-y-5">
-            {['Rooms', 'Direct messages'].map((kind) => {
+            {['Rooms', 'Public rooms', ...(enabled ? ['Direct messages'] : [])].map((kind) => {
               const matches = results.filter((item) => item.kind === kind);
               if (!matches.length) return null;
-              const Icon = kind === 'Rooms' ? Hash : MessageSquare;
+              const Icon = kind !== 'Direct messages' ? Hash : MessageSquare;
               return (
                 <section key={kind} aria-label={kind}>
                   <h2 className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
@@ -141,7 +151,7 @@ export function GlobalSearchPanel() {
         )}
       </div>
       <p className="border-t border-zinc-800 px-6 py-3 text-[11px] text-zinc-500">
-        Search your rooms and existing DMs. Search message text inside a conversation.
+        Find public rooms to join or open your existing conversations.
       </p>
     </Dialog>
   );

@@ -1,3 +1,4 @@
+import { MESSAGE_QUERY_KEYS } from '@/features/messaging/api/message.keys';
 import { usePresence } from '@/features/realtime/hooks/usePresence';
 import { roomsApi } from '@/features/rooms/api/room.api';
 import { invalidateRoomState } from '@/features/rooms/api/room.cache';
@@ -51,6 +52,8 @@ export function useRoomMembership(room: Room, userId: string, onClose: () => voi
       }
     },
     onSuccess: async (updated, input) => {
+      if (input.kind === 'join' || input.kind === 'leave')
+        queryClient.removeQueries({ queryKey: MESSAGE_QUERY_KEYS.room(room._id, userId) });
       setConfirmation(null);
       if (input.kind === 'leave') {
         queryClient.removeQueries({ queryKey: ROOM_QUERY_KEYS.memberScope(room._id) });
