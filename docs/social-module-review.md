@@ -1,5 +1,7 @@
 # Social & Invitations module review
 
+> Historical record. For current behavior and ownership, see [architecture](architecture.md) and the [documentation map](README.md).
+
 Reviewed and remediated on 2026-10-29. The original findings below are retained as context. All eight now have implemented fixes, covered by unit tests and the live MongoDB HTTP verification script.
 
 ## Resolution status

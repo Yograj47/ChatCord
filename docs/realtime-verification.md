@@ -12,7 +12,7 @@ This uses the configured `.env.local`/`.env` database and Redis service. It crea
 
 The checks cover:
 
-- Authentication before socket connection; missing/guest credentials are rejected.
+- Authentication before socket connection; missing credentials are rejected. The original registered-only fixture checks predate public guest support; current guest join/send/expiry coverage is in the persistence suite and Docker smoke script.
 - Participant-only subscriptions, outsider sends, and invalid payloads.
 - Bidirectional real Socket.IO delivery, acknowledgements, and MongoDB persistence.
 - Disconnect/reconnect/rejoin, missed-message history, and reuse of the same DM.

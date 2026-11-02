@@ -1,6 +1,6 @@
 # Room invitations frontend
 
-Open **Invitations** in the sidebar. Its badge shows the received-invitation count; the inbox refreshes every 30 seconds and on window focus.
+Open **Notifications → Invitations** in the main header or navigate to `/app/notifications?section=invitations`. The legacy `/app/invitations` URL redirects here. The notification badge includes received invitations; the inbox refreshes every 30 seconds and on window focus.
 
 ## Receive and respond
 

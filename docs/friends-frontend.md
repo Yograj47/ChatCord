@@ -1,14 +1,14 @@
 # Friends frontend
 
-Open **Friends** in the sidebar or navigate to `/app/friends` while signed in as a registered user.
+Open **Notifications → Friends** in the main header or navigate to `/app/notifications?section=friends` while signed in as a registered user. The legacy `/app/friends` URL redirects here.
 
 - **All friends:** view accepted friends, start a DM, or remove a friend after an inline confirmation. Removing a friend blocks new DM messages; existing history remains available.
 - **Requests:** view incoming and outgoing requests; accept/decline incoming requests and cancel outgoing requests.
 - **Add friends:** search usernames by a 2–20 character prefix. Search is debounced, normalized to lowercase, and canceled when superseded. Existing friends and pending requests display the appropriate relationship actions.
-- Lists refresh after mutations, on window focus, and every 30 seconds. The sidebar's DM friend picker shares the friend-list cache.
+- Lists refresh after mutations, on window focus, and every 30 seconds. DM creation is available from Friends; the sidebar lists existing conversations.
 - Failed loading disables relationship actions; failed mutations display an error and refetch current server state. Guests see sign-in guidance and do not request social data.
 
-The typed API adapter maps search results' `id` field to the public-profile `_id` used by friendship responses. Query caches include the session user ID. The Friends page hides the unrelated thread panel and supports the existing mobile sidebar navigation.
+The typed API adapter maps search results' `id` field to the public-profile `_id` used by friendship responses. Query caches include the session user ID. The view participates in the shared notification layout and mobile workspace navigation.
 
 ## Synthetic browser preview
 

@@ -53,3 +53,5 @@ Guest workspace tests cover public-room search without DM suggestions, hidden ac
 History-policy regression checks cover public-room visibility control hiding, policy guidance, membership-specific history cache keys, pre-join filtering and disabled-query cached-data suppression.
 
 System-message tests verify activity metadata mapping and separate notice rendering without author avatars or message actions.
+
+Legal pages (2026-11-02): 79 tests pass across 15 files. Routing coverage includes public privacy/terms access for signed-out users, guests and registered users awaiting onboarding. Production build, bundle limits, typecheck, lint and architecture checks pass. These checks do not constitute legal review or deployed-browser verification.
