@@ -4,7 +4,7 @@ An educational full-stack chat application with public/private rooms, friend-onl
 
 ## Status
 
-Current milestone: **v1.0.0 release candidate**.
+Current release: **v1.0.0**.
 
 Feature implementation, frontend cleanup, local Docker verification, educational privacy/terms pages and documentation consolidation are complete. Public deployment and operational hardening remain future work. This project is not presented as a production-ready hosted service.
 
