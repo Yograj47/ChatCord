@@ -34,7 +34,14 @@ export function AuthLayout() {
       </main>
       <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-zinc-800/60 px-5 py-7 text-[11px] text-zinc-500 sm:px-8">
         <span>© {new Date().getFullYear()} ChatCord</span>
-        <span>A shared space for real conversations.</span>
+        <nav aria-label="Legal information" className="flex gap-5">
+          <Link to="/privacy" className="hover:text-zinc-200">
+            Privacy policy
+          </Link>
+          <Link to="/terms" className="hover:text-zinc-200">
+            Terms of use
+          </Link>
+        </nav>
       </footer>
     </div>
   );

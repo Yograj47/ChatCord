@@ -1,342 +1,115 @@
 # ChatCord
 
-A full-stack real-time communication platform built as an evolution of a simple Socket.IO chat application.
-
-The goal is to rebuild ChatCord into a production-oriented application demonstrating modern full-stack engineering practices, including authentication, authorization, persistent messaging, real-time communication, caching, security, testing, and deployment.
-
----
+An educational full-stack chat application with public/private rooms, friend-only direct messages and real-time conversation updates. Built with React, TypeScript, NestJS, MongoDB, Redis and Socket.IO.
 
 ## Status
 
-🚧 **In Development**
+Current milestone: **Pre-deployment**.
 
-Current milestone: **Backend Controller Testing**
+Feature implementation, frontend cleanup, local Docker verification, educational privacy/terms pages and documentation consolidation are complete. Public deployment and operational hardening remain future work. This project is not presented as a production-ready hosted service.
 
-Current task: **Readability, naming, comments, and shared-policy cleanup**
+Start with [architecture and flows](docs/architecture.md), the [documentation map](docs/README.md), or [Docker setup](docker/README.md). Each active backend domain and frontend feature has a short README beside its source, linked from architecture.
 
-Social, messaging, and real-time integration are implemented and previously passed live verification. Default backend tests live under `server/test/controllers` and focus on HTTP controller contracts with mocked services. A separate API integration suite exercises the actual application with MongoDB and Redis. Service/gateway unit specs have been removed from production modules. Frontend findings F1–F11 have been addressed through feature organization, regression coverage, shared state/query contracts and route splitting. Automated full browser end-to-end testing and deployment remain in progress. See [frontend cleanup](docs/frontend-cleanup-log.md).
+## Run locally with Docker
 
----
+Use Docker Desktop with Linux containers. Run from the repository root:
 
-## Tech Stack
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui
-- TanStack Query
-- Zustand
-- Socket.IO Client
-
-### Backend
-
-- NestJS
-- TypeScript
-- Mongoose
-- REST API
-- Socket.IO
-
-### Data & Infrastructure
-
-- MongoDB
-- Redis
-- Docker
-- GitHub Actions
-
-### Authentication
-
-- OAuth 2.0
-- OpenID Connect
-- Google Authentication
-- Cookie-based Sessions
-
----
-
-# Progress
-
-## Foundation
-
-- [x] Initialize Git repository
-- [x] Establish initial project structure
-- [x] Initialize React client
-- [x] Initialize NestJS server
-- [x] Add `.gitignore`
-- [x] Define architecture
-- [x] Create project tracker
-- [x] Add `.env.example`
-- [x] Add LICENSE
-- [x] Configure development tooling
-
-## Backend
-
-- [x] Establish backend module structure
-- [x] Configure environment validation
-- [x] Connect MongoDB
-- [x] Configure Mongoose
-- [x] Create User schema
-- [x] Create Room schema
-- [x] Create Message schema
-- [x] Add request validation
-- [x] Add API documentation
-
-## Authentication
-
-- [x] Define authentication flow
-- [x] Configure OAuth 2.0 / OpenID Connect
-- [x] Add Google authentication
-- [x] Create/find application user
-- [x] Establish authenticated session
-- [x] Protect API routes
-- [x] Define roles and permissions
-
-### Authentication Hardening
-
-- [x] Review Google OAuth edge cases
-- [x] Review session guard behavior
-- [x] Review cookie configuration
-- [x] Handle duplicate Google/user identity cases
-- [x] Add auth unit/integration tests
-- [x] Finalize UserService behavior
-
-## Rooms
-
-- [x] Create room
-- [x] List rooms
-- [x] Room details
-- [x] Join room
-- [x] Leave room
-- [x] Room membership
-- [x] Room permissions
-
-## Messaging
-
-- [x] Create message
-- [x] Persist messages
-- [x] Retrieve message history
-- [x] Message pagination
-- [x] Edit message
-- [x] Delete message
-- [x] Message replies
-- [x] Message reactions
-- [x] Message search
-
-## Real-Time
-
-- [x] Configure Socket.IO
-- [x] Room connections
-- [x] Real-time messages
-- [x] Online presence
-- [x] Typing indicators
-- [x] Join/leave events
-- [x] Connection handling
-- [x] Socket authentication
-
-## Redis
-
-- [x] Configure Redis
-- [x] Presence state
-- [x] Typing state
-- [x] Caching
-- [x] Rate limiting
-- [x] Socket.IO Redis adapter
-
-## Frontend Foundation
-
-- [x] Initialize React client
-- [x] Configure TypeScript
-- [x] Configure Vite
-- [x] Configure Tailwind CSS
-- [x] Configure shadcn/ui
-- [x] Configure TanStack Query
-- [x] Configure Zustand
-- [x] Configure API client
-- [x] Configure Socket.IO client
-- [x] Establish frontend application layout
-
-## Frontend UI
-
-- [x] Authentication UI
-- [x] Room interface
-- [x] Message interface
-- [x] Real-time interface
-- [x] Presence UI
-- [x] Typing indicator
-- [x] Reactions UI
-- [x] Replies UI
-- [x] Responsive design
-
-## Authentication Integration
-
-- [x] Establish frontend authentication API client
-- [x] Integrate session/current-user API
-- [x] Integrate Google OAuth flow
-- [x] Integrate OAuth callback
-- [x] Integrate guest session flow
-- [x] Integrate username onboarding
-- [x] Implement authenticated route protection
-- [x] Implement authentication state handling
-- [x] Implement logout
-- [x] Handle session expiration
-- [x] Handle authentication errors
-- [x] Test frontend ↔ backend authentication flow
-
-### Room Integration
-
-- [x] Integrate room API
-- [x] Load authenticated user's rooms
-- [x] Integrate room creation
-- [x] Integrate room details and editing
-- [x] Integrate room membership
-- [x] Connect room navigation to backend data
-- [x] Integrate room permissions
-
-**Status:** Membership and permissions integrated: public join, confirmed leave/removal, public member profiles, owner-only roles, moderator restrictions, visibility, and text-message controls. Ownership transfer remains unavailable.
-
-### Current Milestone: Social & Invitations
-
-- [x] Review existing user, authentication, room, and DM modules
-- [x] Implement registered-user search backend
-- [x] Verify registered-user search against the live database
-- [x] Implement friend requests and friendship management backend
-- [x] Add friendship authorization checks and service tests (12 passing)
-- [x] Verify friendship flows against the live database
-- [x] Integrate user search and friendship frontend
-- [x] Verify social frontend against the running backend
-- [x] Implement friend-only DM backend and frontend API/navigation integration
-- [x] Verify DM browser and Socket.IO flows end to end
-- [x] Implement room invitation backend
-- [x] Integrate invitation acceptance with backend room membership
-- [x] Integrate invitation frontend workflows
-- [x] Add remaining social and invitation authorization/module tests
-
-Friendship routes and response formats are documented in [Friendships API](server/src/modules/friendships/README.md).
-
-All eight findings in the [social module review](docs/social-module-review.md) have implemented fixes. The [social API guide](docs/social-api.md) documents DM policy, consent-based invitations, identifiers, and verification.
-
-Open **Notifications / Friends** in the main header for friend lists, incoming/outgoing requests, and username search. The [Friends frontend guide](docs/friends-frontend.md) covers behavior and the synthetic browser verification workflow.
-
-Open **Notifications / Invitations** for received room invitations and sending invitations from groups you manage. Owners/moderators can also use **Invite people** in the members dialog. See the [room invitations frontend guide](docs/invitations-frontend.md).
-
-Use the room-header member count for [Members and permissions](docs/room-permissions.md). The [live realtime verification guide](docs/realtime-verification.md) documents the real MongoDB/Redis browser and Socket.IO checks and fixture cleanup.
-
-## Messaging Integration
-
-- [x] Integrate message history API
-- [x] Integrate message creation
-- [x] Integrate message editing
-- [x] Integrate message deletion
-- [x] Integrate message pagination
-- [x] Integrate message replies
-- [x] Integrate message reactions
-- [x] Integrate message search
-
-See [messaging integration](docs/messaging-integration.md) for the API/type/hook/component structure, authorization rules, cursor/search contracts, realtime synchronization, and repeatable live verification. Deletion retains a placeholder for linked replies; search is scoped to the current conversation.
-
-## Real-Time Integration
-
-- [x] Integrate Socket.IO connection lifecycle
-- [x] Integrate room join/leave events
-- [x] Integrate real-time messages
-- [x] Integrate online presence
-- [x] Integrate typing indicators
-- [x] Handle socket reconnection
-- [x] Synchronize message history and room membership with server state
-
-See [presence and typing](docs/presence-typing.md) for socket contracts, lease expiry, multi-tab behavior, authorization, client hooks, and repeatable verification.
-
-## Testing
-
-Readability cleanup: redundant/commented-out source comments removed; API error parsing and message-producing permissions centralized; DTOs separated from controllers; filename casing and RealtimeGateway naming corrected. See [frontend quality review](docs/frontend-quality-review.md) and [cleanup log](docs/frontend-cleanup-log.md) for the frontend DRY/SOLID assessment and completed changes.
-
-The default backend suite now contains controller HTTP tests only, centralized under `server/test/controllers`. All 128 tests across six suites pass, with 98.9% controller line coverage. Build, TypeScript and changed-file lint checks pass. All colocated specs and the obsolete E2E scaffold were removed. Services and external providers are mocked; controller routes, validation, session identity, responses, cookies/redirects, and error propagation are covered. The separate opt-in live verification scripts remain available. See [backend controller tests](server/test/README.md) for commands and scope. Earlier feature validation counts below refer to the previous test layout.
-
-Real-time validation (2026-10-31): 136 tests across 15 suites passed. Backend/frontend production builds, TypeScript and changed-file lint passed. Live MongoDB/Redis/Socket.IO checks passed scoped presence, multi-tab online/offline transitions, reconnect, lease expiry, typing snapshots, stop/disconnect/leave/send cleanup, and outsider rejection. Browser checks confirmed real Friends/sidebar/DM/member status, offline-to-online transitions on reconnect, and a peer typing indicator that clears after inactivity. The harness exited successfully and removed its isolated records; temporary servers were stopped.
-
-Messaging validation (2026-10-31): 129 tests across 14 suites passed. Backend/frontend production builds, TypeScript, and changed-file lint passed. Live message API and Socket.IO tests passed author-only edits/deletion, cursor boundaries, search scoping, reply persistence, idempotent reactions, and deletion placeholders. Browser checks passed sending, searching, editing, reaction changes, both reply workflows, reload persistence, confirmed deletion, deleted-parent quotes, and older-page loading. User manual testing passed. UI and folder-structure cleanup are deferred.
-
-Social milestone validation (2026-10-31): all 126 backend tests across 14 suites passed at milestone closure. The HTTP tests exercise real Nest controllers, session/role guards, and validation with stubbed persistence services. Social HTTP checks passed against MongoDB, including concurrent acceptance and recipient authorization. The actual AppModule/MongoDB/Redis Socket.IO checks passed again. Real-browser checks completed friendship and invitation flows; see [live verification](docs/realtime-verification.md).
-
-Friends frontend validation: synthetic checks on 2026-10-30 covered validation, empty/error states, and relationship controls. Live browser checks on 2026-10-31 passed normalized username search, send/cancel, accept/decline, confirmed removal, refreshed counts, and guest guidance using isolated accounts against the running backend. No real users were contacted.
-
-Room invitation frontend validation: synthetic checks on 2026-10-30 covered duplicate/stale/error states and room-header entry. Live browser checks on 2026-10-31 passed recipient search, send/expiry confirmation, inbox/badge, decline/count refresh, acceptance with room-list update/navigation, regular-member permissions, unauthorized send deep links, and guest guidance. Invitations were sent only between isolated verification accounts.
-
-Live DM and room-control browser validation (2026-10-30): the actual AppModule, MongoDB, Redis and Redis Socket.IO adapter passed transport checks. The browser sent a DM and displayed the peer's reply, retained exactly one copy after reload, retained history after unfriending, and kept a rejected message draft intact. Room checks passed real member profiles, owner promotion, confirmed removal, text-disable enforcement, public join, member-only controls, and confirmed leave/navigation. These used isolated verification users, not real conversations. See [realtime verification](docs/realtime-verification.md) for repeatable commands and cleanup.
-
-The 2026-10-30 live verification completed with exit code 0 and removed its temporary records. The 2026-10-31 social HTTP harness also completed with exit code 0 and removed its records. The live browser harness has its own 20-minute shutdown and cleanup handler for temporary users, sessions, friendships, rooms, messages, and explicit presence records.
-
-Repeat the search check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-user-search.ts`. It uses the configured database and creates isolated temporary records; unrelated authentication services are stubbed, so this does not verify Google login or the full running application.
-
-Repeat the separate live social check from `server` with `npx ts-node --transpile-only -r tsconfig-paths/register test/verify-social.ts`. It is not part of the controller-only Jest suite.
-
-- [x] Backend controller HTTP test suite (129 passing across six suites in server/test/controllers)
-- [x] Full API integration tests with real persistence (19 HTTP workflows using the actual AppModule, MongoDB and Redis)
-- [x] Live DM Socket.IO integration checks (MongoDB and Redis)
-- [x] Frontend behavior regression tests (73 passing across fifteen files)
-- [ ] End-to-end tests
-
-Frontend commands and verification scope are documented in [frontend verification](client/test/README.md). Route splitting replaces the previous oversized single bundle; `npm run check:bundle` checks the built JavaScript chunks without suppressing Vite’s warning threshold.
-
-Run the separate persistence suite from `server` with `npm run test:integration`. Each run creates and cleans up its own temporary database. All 19 workflows passed on 2026-10-31; the default 128 controller tests, backend build, TypeScript and changed-file lint also pass. External Google login and browser/Socket.IO delivery are outside this HTTP suite. See [backend tests](server/test/README.md) for setup and scope.
-
-## DevOps
-
-- [ ] Docker development environment
-- [ ] Dockerize client
-- [ ] Dockerize server
-- [ ] Configure CI
-- [ ] Automated tests in CI
-- [ ] Production build
-- [ ] Deployment
-- [ ] Logging
-- [ ] Monitoring
-
----
-
-# Architecture
-
-The detailed system architecture, repository structure, technology responsibilities, data architecture, authentication flow, API boundaries, real-time architecture, and development tasks are documented in:
-
-`docs/architecture.md`
-
----
-
-# Development Approach
-
-ChatCord is developed incrementally.
-
-```text
-Plan
- ↓
-Create feature branch
- ↓
-Implement task
- ↓
-Test
- ↓
-Review
- ↓
-Create checkpoint commit
- ↓
-Merge into main
- ↓
-Update tracker
+```powershell
+Copy-Item docker/.env.example docker/.env
+docker compose --env-file docker/.env -f docker/docker-compose.yml up --build -d
 ```
 
-## Workspace UI updates
+Open [localhost:8080](http://localhost:8080). Example credentials support guest-only testing. For Google login, configure real OAuth credentials and the matching callback; see the [runbook](docker/README.md). The stack is local HTTP with loopback-only exposure, not a public deployment configuration.
 
-The app opens with an animated logo splash that respects reduced motion. The sidebar account menu provides Settings and Log out. Settings includes profile editing, a photo option marked Coming soon, and Google-managed password guidance. The sidebar shows usernames and one account presence indicator, without room search or creation shortcuts. Friends and Invitations are available together under the main header Notifications button.
+For source synchronization and live reload:
 
-### Guest workspace
+```powershell
+docker compose --env-file docker/.env -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up --build --watch
+```
 
-Guests receive a random temporary username and can search, join and chat in public rooms. The session expires 30 minutes after creation; a countdown and Google sign-in action are shown. Guests have no account settings, room creation or social/DM actions. Expired guest identities, sessions and memberships are cleaned up automatically; message history remains. Live verification passed 129 controller tests, 21 real-persistence workflows (including guest Socket.IO send/expiry), and 64 frontend behavior tests.
+MongoDB and Redis use private service networking and named volumes. `down` keeps data; adding `--volumes` deletes that Compose project's data. Do not use disposable smoke commands against your normal development project.
 
-### Message history visibility
+## Develop without containers
 
-All room types enforce history from the current membership join time. Guests and registered users cannot read or interact with earlier messages, including via search, pagination, direct IDs, replies or live updates. Leaving and rejoining starts a fresh history window. Public-room member dialogs hide the join-policy selector and explain this history rule.
+Install dependencies separately with `npm ci` in `server` and `client`. Use `server/.env.example` for server configuration. Put the client’s public `VITE_API_URL` and `VITE_SOCKET_URL` values in `client/.env.local`; provide MongoDB and Redis. Default origins are API `localhost:3000` and frontend `localhost:5173`.
 
-### Room activity notices
+```powershell
+# Terminal 1
+cd server
+npm run start:dev
 
-Small, muted notices appear in the chat for joins, leaves, removals, guest-session expiry, role changes, room renames and permission changes. These notices are saved and delivered live, follow the join-time history rule, and cannot be forged, edited, deleted, replied to or reacted to by users. Reconnecting does not count as joining again.
+# Terminal 2, from repository root
+cd client
+npm run dev
+```
+
+Server startup validates its environment. Google sign-in requires configured credentials; no real secrets belong in client Vite variables or committed files. Swagger is available at `/api/docs` on the API origin.
+
+## Implemented behavior
+
+- Google accounts, unique username onboarding, profile editing, session/logout/expiry handling and public profile photos from Google.
+- Random guest identities with fixed 30-minute sessions; public-room search, join/leave and messaging. Guest cleanup removes identities, sessions and memberships while retaining messages.
+- Public/private groups, invitations with recipient acceptance/decline, owners/moderators and permission controls.
+- Registered-user search, friend requests and friendship management; accepted friendship required for new DM sends.
+- Persistent history, creation/edit/delete, paging, replies, reactions and conversation-scoped literal search.
+- History begins at the current membership join time for every user/room type. Rejoining resets that window; old-message updates cannot bypass it.
+- Trusted small room-activity notices for membership, roles, expiry and setting/name changes.
+- Socket lifecycle, subscriptions, reconnect reconciliation, scoped presence and typing. Frontend presence queries currently require a registered identity.
+- Shared room create/edit dialog, notifications combining social/invitation views, Settings, avatars, responsive shell, accessible logo splash and lazy-loaded routes.
+- Public educational privacy and terms pages at `/privacy` and `/terms`, linked beside sign-in and in the landing footer.
+
+## Completed work
+
+- [x] Backend module structure, schemas, validation, authentication and authorization
+- [x] Room, friendship, invitation, messaging and realtime backend/frontend integration
+- [x] Backend readability/naming cleanup and controller tests centralized under `server/test`
+- [x] Frontend F1–F11 cleanup: feature ownership, shared contracts/state, accessibility fixes and bundle splitting
+- [x] Current controller, persistence, frontend and browser smoke milestone checks
+- [x] Client/server Docker images, local full-stack Compose and development reload
+- [x] Runtime/development HTTP and Socket.IO proxy verification
+- [x] Educational privacy policy and terms pages
+- [x] Concise module guides covering entry points/use cases, flow, decisions and next changes
+- [x] Architecture navigation/flows and documentation ownership
+- [x] README consolidated into completed work and future tasks
+
+## Verification
+
+| Scope | Latest recorded result | Guide |
+| --- | --- | --- |
+| Backend controller HTTP suite | 129 tests, six suites; rerun in Docker on 2 November 2026 | [Backend tests](server/test/README.md) |
+| Real persistence and scoped socket workflows | 27 passed on 1 November 2026 | [Backend tests](server/test/README.md) |
+| Frontend behavior suite | 79 tests, 15 files on 2 November 2026 | [Frontend tests](client/test/README.md) |
+| Build/static checks | TypeScript, ESLint, architecture, production build and bundle checks passed | [Frontend checks](client/test/README.md) |
+| Container/browser smoke | HTTP/session/guest discovery/join/send, Socket.IO, reload persistence, volumes and source reload passed on 2 November 2026 | [Docker checks](docker/README.md) |
+
+Controller tests mock services; persistence tests use real MongoDB/Redis with seeded identities. External Google OAuth is not covered by seeded authentication. Browser smoke evidence is not a comprehensive automated browser suite. Dated review logs retain historical counts; they are not additional current suites.
+
+For the main suites:
+
+```powershell
+npm --prefix server test -- --runInBand
+npm --prefix server run test:integration
+npm --prefix client test
+```
+
+The integration suite needs MongoDB/Redis and manages a disposable test database. Read its setup/cleanup guide before running it. Documentation-only changes require link/source review rather than rerunning unrelated application suites.
+
+## Future tasks
+
+- [ ] Configure and verify real Google OAuth for the intended deployment origin
+- [ ] Public HTTPS deployment and production cookie/proxy/security review
+- [ ] CI builds, automated test execution and broader browser/accessibility coverage
+- [ ] Operational logging, monitoring, database index verification and backup/restore checks
+- [ ] Multi-instance socket routing, load/failover and reconnect verification
+- [ ] Operator identity/private contact, hosting/transfer details and applicable privacy/retention/request policies before public data collection
+- [ ] Account export/deletion, blocking/reporting and durable unread notifications
+- [ ] Profile photo upload, attachments/media and ownership transfer
+- [ ] Guest presence UX review and cross-conversation message search, if needed
+
+Disabled/Coming soon UI does not imply those features are implemented. Privacy/terms describe the current educational project and still require deployment-specific review/details.
+
+## Working approach
+
+Use a task branch → implement a coherent change → verify the affected behavior → review → commit → merge into `main`. Keep secrets and fixtures out of commits. Update the owning module guide when behavior changes, architecture for cross-module flows, and this README for delivery status.
+
+Source code is provided under the [MIT license](LICENSE).

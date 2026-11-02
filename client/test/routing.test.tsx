@@ -100,3 +100,25 @@ describe('route-owned sidebar selection', () => {
     expect(screen.getByText(selection)).toBeInTheDocument();
   });
 });
+
+describe('public legal routes', () => {
+  it.each([
+    ['/privacy', 'Privacy policy', null, false],
+    ['/terms', 'Terms of use', null, false],
+    ['/privacy', 'Privacy policy', { type: 'guest' }, true],
+    ['/terms', 'Terms of use', { type: 'guest' }, true],
+    ['/privacy', 'Privacy policy', { id: 'user' }, false],
+    ['/terms', 'Terms of use', { id: 'user' }, false],
+  ])('keeps %s accessible for session %j', async (path, heading, session, guest) => {
+    auth(session, Boolean(session), guest);
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <AppRouter />
+      </MemoryRouter>,
+    );
+    expect(
+      await screen.findByRole('heading', { level: 1, name: heading }, { timeout: 5000 }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open workspace/ })).toHaveAttribute('href', '/app');
+  });
+});

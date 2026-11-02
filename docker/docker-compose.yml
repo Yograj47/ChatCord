@@ -1,7 +1,87 @@
+name: chatcord
+
 services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          CMD,
+          mongosh,
+          --quiet,
+          --eval,
+          "quit(db.adminCommand('ping').ok ? 0 : 1)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   redis:
     image: redis:8-alpine
-    container_name: chatcord-redis
+    command: [redis-server, --appendonly, "yes"]
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api:
+    build:
+      context: ../server
+      target: runtime
+    init: true
+    restart: unless-stopped
+    environment:
+      # The local HTTP stack uses development cookie settings. Public deployment requires TLS and production mode.
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "3000"
+      CLIENT_URL: http://localhost:${CHATCORD_HTTP_PORT:-8080}
+      MONGODB_URI: mongodb://mongo:27017/chatcord
+      REDIS_URL: redis://redis:6379
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-local-development-client}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-local-development-secret}
+      GOOGLE_CALLBACK_URL: http://localhost:${CHATCORD_HTTP_PORT:-8080}/api/auth/google/callback
+      SESSION_SECRET: ${SESSION_SECRET:-local-development-only}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/api').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+
+  client:
+    build:
+      context: ../client
+      target: runtime
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:${CHATCORD_HTTP_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1:8080/healthz]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+
+volumes:
+  mongo-data:
+  redis-data:

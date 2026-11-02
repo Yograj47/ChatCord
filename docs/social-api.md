@@ -1,6 +1,6 @@
 # Social API behavior
 
-Room, DM, and message APIs require a registered session. Guest sessions receive 403. Private groups and DMs expose room details only to members; registered users may read public group details.
+DMs, invitations and group management require a registered session. Guests can discover/join public groups and use their messages while their fixed 30-minute session is active. Private groups and DMs expose room details only to members. Every message read/action follows the current membership join-time boundary.
 
 ## Direct messages
 
@@ -22,7 +22,7 @@ Room, DM, and message APIs require a registered session. Guest sessions receive 
 
 The member-add route sends an invitation rather than immediately inserting a member. Existing callers must use its invitation response. Invitations expire after seven days. Existing members and duplicate unexpired invitations return 409. Acceptance checks recipient, expiry, room type, and absent membership in the same database update; consumed/expired invitations or concurrent repeats return 409. Invitation details are excluded from ordinary room queries.
 
-Invitation authority is checked at issuance. Acceptance consumes the recipient's issued invitation even if the inviter subsequently loses their moderator role. Removing or leaving a group does not automatically remove its existing pending invitations. The invitation UI supports sending, viewing received invitations, accepting, and declining at `/app/invitations`. Sender-side revocation and a durable sent-invitation history are not implemented.
+Invitation authority is checked at issuance. Acceptance consumes the recipient's issued invitation even if the inviter subsequently loses their moderator role. Removing or leaving a group does not automatically remove its existing pending invitations. The invitation UI supports sending, viewing received invitations, accepting, and declining under `/app/notifications?section=invitations` (the legacy `/app/invitations` URL redirects). Sender-side revocation and a durable sent-invitation history are not implemented.
 
 Group routes accept a room ObjectId or slug and resolve it before mutations; message routes and socket events require ObjectIds. Membership changes invalidate both ID and slug Redis keys. Room authorization reads deliberately bypass cached JSON to use current database membership.
 

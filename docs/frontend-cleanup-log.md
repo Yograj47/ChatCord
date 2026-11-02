@@ -1,5 +1,7 @@
 # Frontend cleanup log
 
+> Historical record. For current behavior and ownership, see [architecture](architecture.md) and the [documentation map](README.md).
+
 Branch: `feature/frontend-cleanup`
 
 ## F1 / P1 — Dialog accessibility and room form labels

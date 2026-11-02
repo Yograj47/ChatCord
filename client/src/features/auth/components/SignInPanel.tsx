@@ -3,7 +3,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { showError, showSuccess } from '@/shared/lib/toast';
 import { ArrowRight, UserCheck } from 'lucide-react';
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 export const SignInPanel: React.FC = () => {
   const [isGuestLoading, setIsGuestLoading] = useState(false);
@@ -83,6 +83,17 @@ export const SignInPanel: React.FC = () => {
           </>
         )}
       </div>
+      <p className="mt-5 text-center text-[11px] leading-relaxed text-zinc-500">
+        Before continuing, read our{' '}
+        <Link to="/terms" className="text-zinc-300 hover:underline">
+          Terms of use
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" className="text-zinc-300 hover:underline">
+          Privacy policy
+        </Link>
+        .
+      </p>
     </section>
   );
 };

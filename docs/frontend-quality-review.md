@@ -1,5 +1,7 @@
 # Frontend architecture and cleanup review
 
+> Historical record. For current behavior and ownership, see [architecture](architecture.md) and the [documentation map](README.md).
+
 Date: 2026-10-31  
 Branch: `feature/frontend-cleanup`  
 Scope: `client/src`, application configuration, dependencies and existing verification utilities. This document records the original review baseline.
@@ -33,7 +35,7 @@ Priority: P1 = address before broad refactoring; P2 = address during cleanup; P3
 
 ### F1 — P1: Modal behavior is inconsistent and shared modal accessibility is incomplete
 
-Evidence: [`Modal.tsx`](../client/src/components/common/Modal.tsx) renders ordinary `div` elements without dialog semantics, a focus trap, Escape handling or focus restoration. Its icon-only close button lacks an accessible name. Create/edit room forms use this shared modal. In contrast, [`MessageDialog.tsx`](../client/src/components/chat/MessageDialog.tsx), [`MessageReplies.tsx`](../client/src/components/chat/MessageReplies.tsx) and [`RoomMembersDialog.tsx`](../client/src/components/rooms/RoomMembersDialog.tsx) independently use native dialogs. Room form labels also lack matching `htmlFor`/input IDs.
+Evidence: ``Modal.tsx`` (historical path) renders ordinary `div` elements without dialog semantics, a focus trap, Escape handling or focus restoration. Its icon-only close button lacks an accessible name. Create/edit room forms use this shared modal. In contrast, ``MessageDialog.tsx`` (historical path), ``MessageReplies.tsx`` (historical path) and ``RoomMembersDialog.tsx`` (historical path) independently use native dialogs. Room form labels also lack matching `htmlFor`/input IDs.
 
 Impact: keyboard and assistive-technology behavior depends on which dialog is opened; background controls can remain reachable in the shared overlay.
 
@@ -41,7 +43,7 @@ Fix: establish one accessible dialog foundation with labelled titles/description
 
 ### F2 — P1: Runtime dependency ownership is incomplete
 
-Evidence: [`types/auth.ts`](../client/src/types/auth.ts), [`CreateRoomForm.tsx`](../client/src/components/rooms/CreateRoomForm.tsx) and [`EditRoomForm.tsx`](../client/src/components/rooms/EditRoomForm.tsx) import `zod`, but [`package.json`](../client/package.json) does not declare it directly. `npm ls zod --depth=0` reports an empty result.
+Evidence: ``types/auth.ts`` (historical path), ``CreateRoomForm.tsx`` (historical path) and ``EditRoomForm.tsx`` (historical path) import `zod`, but [`package.json`](../client/package.json) does not declare it directly. `npm ls zod --depth=0` reports an empty result.
 
 Impact: a successful local build currently relies on an indirectly available installation; dependency resolution can change independently of the application.
 
@@ -57,7 +59,7 @@ Fix: establish focused regression checks for protected routes, server-state inva
 
 ### F4 — P2: Server-state behavior is split between hooks and presentation
 
-Evidence: [`FriendsPage.tsx`](../client/src/pages/app/FriendsPage.tsx) (552 lines), [`InvitationsPage.tsx`](../client/src/pages/app/InvitationsPage.tsx) (525), [`ChatContainer.tsx`](../client/src/components/chat/ChatContainer.tsx) (450), and [`RoomMembersDialog.tsx`](../client/src/components/rooms/RoomMembersDialog.tsx) (367) combine multiple responsibilities. Friends and invitation pages implement queries/mutations directly; [`Sidebar.tsx`](../client/src/components/layout/Sidebar.tsx) also implements friend/DM queries and DM creation. Line counts are navigation aids, not failure thresholds.
+Evidence: ``FriendsPage.tsx`` (historical path) (552 lines), ``InvitationsPage.tsx`` (historical path) (525), ``ChatContainer.tsx`` (historical path) (450), and ``RoomMembersDialog.tsx`` (historical path) (367) combine multiple responsibilities. Friends and invitation pages implement queries/mutations directly; ``Sidebar.tsx`` (historical path) also implements friend/DM queries and DM creation. Line counts are navigation aids, not failure thresholds.
 
 Impact: changes to one workflow require editing pages, layout components and hooks, increasing the chance of inconsistent behavior.
 
@@ -65,7 +67,7 @@ Fix: extract cohesive feature query/mutation hooks and pure presentation compone
 
 ### F5 — P2: Query keys and cache updates have multiple owners
 
-Evidence: room/message keys have factories, while `friends`, `friend-requests`, `dms`, `user-search`, `room-members` and `invitation-rooms` keys are repeated across pages, Sidebar and dialogs. [`useRoom.ts`](../client/src/hooks/useRoom.ts) combines list fetching with every room mutation, so a consumer needing only update behavior also subscribes to the list. Membership operations are separately implemented there and in RoomMembersDialog. Invitation room lists use a separate key from the regular room list.
+Evidence: room/message keys have factories, while `friends`, `friend-requests`, `dms`, `user-search`, `room-members` and `invitation-rooms` keys are repeated across pages, Sidebar and dialogs. ``useRoom.ts`` (historical path) combines list fetching with every room mutation, so a consumer needing only update behavior also subscribes to the list. Membership operations are separately implemented there and in RoomMembersDialog. Invitation room lists use a separate key from the regular room list.
 
 Impact: duplicate cache entries and invalidation policies must be kept synchronized manually. This is a maintenance risk; this review has not demonstrated every such path is currently broken.
 
@@ -73,7 +75,7 @@ Fix: feature-owned key factories, focused query hooks and mutation hooks, and ex
 
 ### F6 — P2: Navigation and UI state have overlapping sources of truth
 
-Evidence: both [`app.store.ts`](../client/src/stores/app.store.ts) and [`layout.store.ts`](../client/src/stores/layout.store.ts) declare `activeRoomId`; layout initializes it to the fixture-like value `'1'`. Sidebar separately stores `activeDmId`, while routes identify the current conversation. [`auth.store.ts`](../client/src/stores/auth.store.ts) has no source consumers; authentication is actually owned by React Query in `useAuth`. `activeThreadId` and composer draft/editing setters have no external source references found during the review.
+Evidence: both ``app.store.ts`` (historical path) and ``layout.store.ts`` (historical path) declare `activeRoomId`; layout initializes it to the fixture-like value `'1'`. Sidebar separately stores `activeDmId`, while routes identify the current conversation. ``auth.store.ts`` (historical path) has no source consumers; authentication is actually owned by React Query in `useAuth`. `activeThreadId` and composer draft/editing setters have no external source references found during the review.
 
 Impact: direct links/back navigation can diverge from manually updated selection state, and unused stores imply competing ownership models.
 
@@ -87,13 +89,13 @@ Fix: document one app-code convention, keep generated UI conventions where appro
 
 ### F8 — P2: Global search still exposes mock behavior; unused scaffolding remains
 
-Evidence: [`GlobalSearchModal.tsx`](../client/src/components/modals/GlobalSearchModal.tsx) uses `MOCK_RESULTS`, is mounted in AppLayout, and its select handler only logs and closes. [`RoomPage.tsx`](../client/src/pages/app/RoomPage.tsx) is not referenced by the router, which mounts ChatContainer directly. [`ThreadPanel.tsx`](../client/src/components/layout/ThreadPanel.tsx) contains hardcoded thread content and has no source consumers. PinnedSpacesSection is explicitly labelled Coming Soon and should be treated as a separate product placeholder.
+Evidence: ``GlobalSearchModal.tsx`` (historical path) uses `MOCK_RESULTS`, is mounted in AppLayout, and its select handler only logs and closes. ``RoomPage.tsx`` (historical path) is not referenced by the router, which mounts ChatContainer directly. ``ThreadPanel.tsx`` (historical path) contains hardcoded thread content and has no source consumers. PinnedSpacesSection is explicitly labelled Coming Soon and should be treated as a separate product placeholder.
 
 Fix: remove unreachable scaffolding after checking external references. Make global search's unfinished state explicit or implement it as separately scoped feature work; file cleanup should not silently promise a new cross-conversation search backend. Preserve intentionally labelled future features unless the product scope changes.
 
 ### F9 — P2: Form rules, presentation styles and formatting are repeated
 
-Evidence: create/edit room forms repeat name/description rules and field markup. User search debounce/validation appears in social/invitation flows; styles for action buttons and panels are repeated. Semantic color tokens exist in [`index.css`](../client/src/index.css), but many screens use hardcoded dark colors. Quote style, indentation, blank lines and React component declaration style vary. Existing button primitives are used inconsistently.
+Evidence: create/edit room forms repeat name/description rules and field markup. User search debounce/validation appears in social/invitation flows; styles for action buttons and panels are repeated. Semantic color tokens exist in ``index.css`` (historical path), but many screens use hardcoded dark colors. Quote style, indentation, blank lines and React component declaration style vary. Existing button primitives are used inconsistently.
 
 Fix: share room field/schema definitions, a small debounce helper where behavior is identical, and established button/form/dialog primitives. Adopt semantic tokens incrementally. Configure formatting, then apply mechanical formatting separately from behavior changes. Retain comments explaining socket lifecycle, concurrency or intentional failure handling; remove stale scaffolding comments and debug logging. Do not abstract every repeated Tailwind string.
 
@@ -105,7 +107,7 @@ Fix: enable strict checking permanently, type public API contracts, and add focu
 
 ### F11 — P3: Route delivery and realtime subscriptions can be made more deliberate
 
-Evidence: [`routes/index.tsx`](../client/src/routes/index.tsx) statically imports route screens; production currently produces one 632.57 kB main JavaScript chunk. `useMessages` registers room-event listeners per consumer, including the replies view. Hooks/components import the shared socket singleton directly. The current lifecycle has useful listener cleanup and reconnect handling that must be preserved.
+Evidence: ``routes/index.tsx`` (historical path) statically imports route screens; production currently produces one 632.57 kB main JavaScript chunk. `useMessages` registers room-event listeners per consumer, including the replies view. Hooks/components import the shared socket singleton directly. The current lifecycle has useful listener cleanup and reconnect handling that must be preserved.
 
 Fix: lazy-load substantial routes with appropriate loading/error boundaries and measure the resulting bundle. Define one owner for connection lifecycle and feature subscription responsibilities. Consider a small transport seam only where testing or lifecycle ownership warrants it. Multiple listeners are a refactoring opportunity, not proof of a current delivery bug.
 

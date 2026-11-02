@@ -7,6 +7,10 @@ import { AppSplash } from '@/shared/ui/AppSplash';
 import React, { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
+const LegalPage = lazy(() =>
+  import('@/pages/legal/LegalPage').then((module) => ({ default: module.LegalPage })),
+);
+
 const WelcomePage = lazy(() =>
   import('@/pages/auth/WelcomePage').then((module) => ({ default: module.WelcomePage })),
 );
@@ -72,6 +76,8 @@ export const AppRouter: React.FC = () => {
                 )
               }
             />
+            <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+            <Route path="/terms" element={<LegalPage kind="terms" />} />
             <Route path="/auth/callback" element={<OAuthCallbackPage />} />
           </Route>
 

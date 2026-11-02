@@ -1,4 +1,31 @@
-# Friendships API
+# Friendships
+
+Owns pending requests and accepted friendships. Registered users use these relationships for social discovery and permission to start/send DMs.
+
+## Main entry points
+
+| Function | Use case |
+| --- | --- |
+| `send` | Validate recipient and create a pending request. |
+| `requests / friends` | Read pending directions or accepted public profiles. |
+| `accept` | Recipient converts a pending request to an accepted friendship. |
+| `dismiss` | Recipient declines or sender cancels a pending request. |
+| `remove` | Either friend removes an accepted relationship. |
+| `FriendshipsService.assertFriends` | Shared DM authorization check. |
+
+## Flow and decisions
+
+Registered controller → validated caller/target → canonical pair lookup/conditional write → return relationship/public profiles. A unique pair key prevents duplicates in either direction. Participant/status predicates make transitions race-safe. Unfriending blocks new DM sends but does not delete the existing participants’ history.
+
+## Next changes
+
+Blocking/reporting is not implemented; define its relationship and conversation effects before adding it. Ensure unique indexes exist in the deployed database.
+
+## Related
+
+[Social API](../../../../docs/social-api.md) · [Rooms/DMs](../rooms/README.md) · [Frontend](../../../../client/src/features/friendships/README.md)
+
+# HTTP contract
 
 All routes require an authenticated registered-user session cookie. Guests receive 403.
 
