@@ -2,6 +2,8 @@
 
 Start with [architecture](architecture.md) for module navigation, data ownership, authorization and runtime flows. The [root README](../README.md) tracks completed work and future tasks. Concise module guides live beside their source and are linked from architecture.
 
+Release notes: [v1.0.0](releases/v1.0.0.md).
+
 ## Current feature contracts
 
 | Guide | Scope |

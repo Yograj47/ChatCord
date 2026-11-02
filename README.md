@@ -4,11 +4,11 @@ An educational full-stack chat application with public/private rooms, friend-onl
 
 ## Status
 
-Current milestone: **Pre-deployment**.
+Current milestone: **v1.0.0 release candidate**.
 
 Feature implementation, frontend cleanup, local Docker verification, educational privacy/terms pages and documentation consolidation are complete. Public deployment and operational hardening remain future work. This project is not presented as a production-ready hosted service.
 
-Start with [architecture and flows](docs/architecture.md), the [documentation map](docs/README.md), or [Docker setup](docker/README.md). Each active backend domain and frontend feature has a short README beside its source, linked from architecture.
+Start with the [v1.0.0 release notes](docs/releases/v1.0.0.md), [architecture and flows](docs/architecture.md), the [documentation map](docs/README.md), or [Docker setup](docker/README.md). Each active backend domain and frontend feature has a short README beside its source, linked from architecture.
 
 ## Run locally with Docker
 
