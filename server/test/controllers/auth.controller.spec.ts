@@ -124,6 +124,26 @@ describe('AuthController HTTP', () => {
     );
     expect(f.services.auth.createGuestSession).toHaveBeenCalledTimes(1);
   });
+  it('allows the production session cookie across the client and API origins', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    f.services.auth.createGuestSession.mockResolvedValue({
+      token: 'fixture-token',
+    });
+
+    try {
+      const response = await f
+        .call('post', '/auth/guest', undefined, null)
+        .expect(201);
+      expect(response.headers['set-cookie']).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/HttpOnly; Secure; SameSite=None/),
+        ]),
+      );
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  });
   it('delegates Google credential verification and creates a registered session', async () => {
     f.services.auth.googleLogin.mockResolvedValue({
       _id: ME,

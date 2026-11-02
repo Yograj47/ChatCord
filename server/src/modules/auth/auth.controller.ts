@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
 
 import { AUTH_COOKIE, AUTH_SESSION } from 'src/common/constants/auth.constants';
 
@@ -186,7 +186,7 @@ export class AuthController {
       await this.authService.logout(token);
     }
 
-    response.clearCookie(AUTH_COOKIE);
+    response.clearCookie(AUTH_COOKIE, this.authCookieOptions());
 
     return response.json({
       message: 'Logout successful.',
@@ -195,10 +195,18 @@ export class AuthController {
 
   private setAuthCookie(response: Response, token: string, maxAge: number) {
     response.cookie(AUTH_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      ...this.authCookieOptions(),
       maxAge,
     });
+  }
+
+  private authCookieOptions(): CookieOptions {
+    const production = process.env.NODE_ENV === 'production';
+
+    return {
+      httpOnly: true,
+      secure: production,
+      sameSite: production ? 'none' : 'lax',
+    };
   }
 }
